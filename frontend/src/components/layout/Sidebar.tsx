@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Shield, Activity, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 
@@ -8,6 +8,7 @@ const menuItems = [
   { icon: Users, label: 'Người dùng', path: '/users' },
   { icon: Shield, label: 'Vai trò', path: '/roles' },
   { icon: Activity, label: 'Nhật ký', path: '/logs' },
+  { icon: Wrench, label: 'Công cụ', path: '/tools' },
 ];
 
 export default function Sidebar() {

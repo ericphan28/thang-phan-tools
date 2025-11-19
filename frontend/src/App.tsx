@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import RolesPage from './pages/RolesPage';
 import ActivityLogsPage from './pages/ActivityLogsPage';
+import ToolsPage from './pages/ToolsPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="logs" element={<ActivityLogsPage />} />
+              <Route path="tools" element={<ToolsPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

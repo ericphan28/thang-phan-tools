@@ -243,27 +243,118 @@ $startScript | ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} "bash"
 Write-Host "[OK] Utility Server started!" -ForegroundColor Green
 
 Write-Host ""
-Write-Host "==================================================" -ForegroundColor Green
-Write-Host "   ALL 4 TOOLS DEPLOYED SUCCESSFULLY!" -ForegroundColor Green
-Write-Host "==================================================" -ForegroundColor Green
+Write-Host "╔══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║                 🎉 DEPLOY THÀNH CÔNG! 🎉                            ║" -ForegroundColor Green
+Write-Host "║              All 5 Services Are Running on VPS                       ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
 Write-Host ""
-Write-Host "1. Cockpit (VPS Management)" -ForegroundColor White
-Write-Host "   http://$VPS_IP`:9090" -ForegroundColor Yellow
-Write-Host "   Login: root / @8Alm523jIqS" -ForegroundColor Gray
-Write-Host ""
-Write-Host "2. Portainer (Docker Management)" -ForegroundColor White
-Write-Host "   https://$VPS_IP`:9443" -ForegroundColor Yellow
-Write-Host "   Setup admin on first visit" -ForegroundColor Gray
-Write-Host ""
-Write-Host "3. Dozzle (Logs Viewer)" -ForegroundColor White
-Write-Host "   http://$VPS_IP`:9999" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "4. Utility Server (API)" -ForegroundColor White
-Write-Host "   http://$VPS_IP/docs" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "==================================================" -ForegroundColor Green
 
-$open = Read-Host "`nOpen Cockpit in browser? (y/n)"
-if ($open -eq "y") {
-    Start-Process "http://$VPS_IP`:9090"
+Write-Host "┌─ 🖥️  SERVER INFORMATION ─────────────────────────────────────────────┐" -ForegroundColor Cyan
+Write-Host "│ IP Address    : $VPS_IP" -ForegroundColor White
+Write-Host "│ SSH Access    : ssh root@$VPS_IP" -ForegroundColor Gray
+Write-Host "│ SSH Password  : @8Alm523jIqS" -ForegroundColor Gray
+Write-Host "│ Location      : /opt/utility-server" -ForegroundColor Gray
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
+Write-Host ""
+
+Write-Host "┌─ 🎯 MANAGEMENT TOOLS ────────────────────────────────────────────────┐" -ForegroundColor Yellow
+Write-Host "│" -ForegroundColor Yellow
+Write-Host "│ 1️⃣  Cockpit - VPS System Management" -ForegroundColor White
+Write-Host "│    🔗 URL      : http://$VPS_IP`:9090" -ForegroundColor Cyan
+Write-Host "│    👤 Login    : root / @8Alm523jIqS" -ForegroundColor Gray
+Write-Host "│    ✨ Features : CPU/RAM monitor, SSH terminal, file manager" -ForegroundColor DarkGray
+Write-Host "│" -ForegroundColor Yellow
+Write-Host "│ 2️⃣  Portainer - Docker Container Management" -ForegroundColor White
+Write-Host "│    🔗 URL      : https://$VPS_IP`:9443" -ForegroundColor Cyan
+Write-Host "│    👤 Setup    : Create admin account on first visit" -ForegroundColor Gray
+Write-Host "│    ✨ Features : Start/stop containers, view logs, manage images" -ForegroundColor DarkGray
+Write-Host "│" -ForegroundColor Yellow
+Write-Host "│ 3️⃣  Dozzle - Real-time Log Viewer" -ForegroundColor White
+Write-Host "│    🔗 URL      : http://$VPS_IP`:9999" -ForegroundColor Cyan
+Write-Host "│    👤 Login    : No authentication (read-only)" -ForegroundColor Gray
+Write-Host "│    ✨ Features : Live logs, search, filter by container" -ForegroundColor DarkGray
+Write-Host "│" -ForegroundColor Yellow
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Yellow
+Write-Host ""
+
+Write-Host "┌─ 🚀 UTILITY SERVER API ──────────────────────────────────────────────┐" -ForegroundColor Magenta
+Write-Host "│" -ForegroundColor Magenta
+Write-Host "│ 4️⃣  FastAPI Backend" -ForegroundColor White
+Write-Host "│    🔗 API Docs : http://$VPS_IP/docs" -ForegroundColor Cyan
+Write-Host "│    🔗 Admin UI : http://$VPS_IP/admin" -ForegroundColor Cyan
+Write-Host "│    📊 Health   : http://$VPS_IP/health" -ForegroundColor Cyan
+Write-Host "│" -ForegroundColor Magenta
+Write-Host "│ 5️⃣  Gotenberg - Document Conversion Service" -ForegroundColor White
+Write-Host "│    🔗 Internal : http://gotenberg:3000" -ForegroundColor Cyan
+Write-Host "│    📄 Function : Convert Word/Excel/PPT → PDF" -ForegroundColor Gray
+Write-Host "│    ✨ Features : LibreOffice headless, modern 2025 solution" -ForegroundColor DarkGray
+Write-Host "│" -ForegroundColor Magenta
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Magenta
+Write-Host ""
+
+Write-Host "┌─ 📦 DOCKER CONTAINERS STATUS ────────────────────────────────────────┐" -ForegroundColor Blue
+ssh -o StrictHostKeyChecking=no ${VPS_USER}@${VPS_IP} "cd /opt/utility-server && docker-compose ps --format 'table {{.Name}}\t{{.Status}}\t{{.Ports}}'" 2>$null | ForEach-Object {
+    Write-Host "│ $_" -ForegroundColor White
+}
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Blue
+Write-Host ""
+
+Write-Host "┌─ 🛠️  AVAILABLE FEATURES ─────────────────────────────────────────────┐" -ForegroundColor Green
+Write-Host "│ ✅ User & Role Management (Admin Dashboard)" -ForegroundColor White
+Write-Host "│ ✅ Document Conversion (Word→PDF, PDF→Word, Merge, Split)" -ForegroundColor White
+Write-Host "│ ✅ Image Processing (Resize, Crop, AI Background Removal)" -ForegroundColor White
+Write-Host "│ ✅ OCR Text Extraction (Vietnamese + 80+ languages)" -ForegroundColor White
+Write-Host "│ ✅ Activity Logging & Audit Trail" -ForegroundColor White
+Write-Host "│ ✅ PostgreSQL Database (port 5432)" -ForegroundColor White
+Write-Host "│ ✅ Redis Cache (port 6379)" -ForegroundColor White
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Green
+Write-Host ""
+
+Write-Host "┌─ 📝 NEXT STEPS ──────────────────────────────────────────────────────┐" -ForegroundColor Yellow
+Write-Host "│ 1. Setup Portainer admin account: https://$VPS_IP`:9443" -ForegroundColor White
+Write-Host "│ 2. View live logs in Dozzle: http://$VPS_IP`:9999" -ForegroundColor White
+Write-Host "│ 3. Test API endpoints: http://$VPS_IP/docs" -ForegroundColor White
+Write-Host "│ 4. Monitor system in Cockpit: http://$VPS_IP`:9090" -ForegroundColor White
+Write-Host "│ 5. Check backend logs: docker-compose logs -f backend" -ForegroundColor Gray
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Yellow
+Write-Host ""
+
+Write-Host "┌─ 🔧 USEFUL COMMANDS ─────────────────────────────────────────────────┐" -ForegroundColor Cyan
+Write-Host "│ View logs       : ssh root@$VPS_IP 'cd /opt/utility-server && docker-compose logs -f'" -ForegroundColor Gray
+Write-Host "│ Restart service : ssh root@$VPS_IP 'cd /opt/utility-server && docker-compose restart'" -ForegroundColor Gray
+Write-Host "│ Stop all        : ssh root@$VPS_IP 'cd /opt/utility-server && docker-compose down'" -ForegroundColor Gray
+Write-Host "│ Start all       : ssh root@$VPS_IP 'cd /opt/utility-server && docker-compose up -d'" -ForegroundColor Gray
+Write-Host "│ Update code     : Run this script again!" -ForegroundColor Gray
+Write-Host "└──────────────────────────────────────────────────────────────────────┘" -ForegroundColor Cyan
+Write-Host ""
+
+Write-Host "╔══════════════════════════════════════════════════════════════════════╗" -ForegroundColor Green
+Write-Host "║              🎊 Ready to use! Happy coding! 🎊                      ║" -ForegroundColor Green
+Write-Host "╚══════════════════════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host ""
+
+# Prompt to open tools
+Write-Host "Bạn muốn mở tool nào? (nhập số hoặc 'n' để bỏ qua)" -ForegroundColor Yellow
+Write-Host "1. Cockpit (System Management)" -ForegroundColor White
+Write-Host "2. Portainer (Docker Management)" -ForegroundColor White
+Write-Host "3. Dozzle (Log Viewer)" -ForegroundColor White
+Write-Host "4. API Documentation" -ForegroundColor White
+Write-Host "5. Mở tất cả" -ForegroundColor White
+$choice = Read-Host "Lựa chọn"
+
+switch ($choice) {
+    "1" { Start-Process "http://$VPS_IP`:9090" }
+    "2" { Start-Process "https://$VPS_IP`:9443" }
+    "3" { Start-Process "http://$VPS_IP`:9999" }
+    "4" { Start-Process "http://$VPS_IP/docs" }
+    "5" { 
+        Start-Process "http://$VPS_IP`:9090"
+        Start-Sleep -Seconds 1
+        Start-Process "https://$VPS_IP`:9443"
+        Start-Sleep -Seconds 1
+        Start-Process "http://$VPS_IP`:9999"
+        Start-Sleep -Seconds 1
+        Start-Process "http://$VPS_IP/docs"
+    }
+    default { Write-Host "Bỏ qua. Bạn có thể truy cập các URL ở trên bất cứ lúc nào!" -ForegroundColor Gray }
 }

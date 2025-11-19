@@ -25,6 +25,11 @@ apt update && apt upgrade -y
 echo "🔧 Installing basic tools..."
 apt install -y curl wget git vim htop tmux build-essential ufw
 
+# Install LibreOffice for document conversion
+echo "📄 Installing LibreOffice for Word→PDF conversion..."
+apt install -y libreoffice libreoffice-writer libreoffice-core --no-install-recommends
+echo "✅ LibreOffice installed"
+
 # Install Docker
 if ! command -v docker &> /dev/null; then
     echo "🐳 Installing Docker..."

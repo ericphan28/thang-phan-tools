@@ -44,6 +44,32 @@ services:
       timeout: 5s
       retries: 5
 
+  # Gotenberg - Document Conversion Service (2025 Modern Solution)
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: utility_gotenberg
+    restart: unless-stopped
+    networks:
+      - utility_network
+    ports:
+      - "3000:3000"
+    # Gotenberg configurations for optimal performance
+    environment:
+      - CHROMIUM_DISABLE_WEB_SECURITY=true
+      - CHROMIUM_IGNORE_CERTIFICATE_ERRORS=true
+    # Optional: Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # FastAPI Backend
   backend:
     build:
