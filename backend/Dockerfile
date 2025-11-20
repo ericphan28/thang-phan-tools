@@ -38,6 +38,7 @@ COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir email-validator==2.1.0 && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

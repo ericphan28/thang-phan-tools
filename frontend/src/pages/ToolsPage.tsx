@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = API_BASE_URL;
 
 export default function ToolsPage() {
   const [activeTab, setActiveTab] = useState<'documents' | 'images' | 'ocr'>('documents');
@@ -14,13 +15,24 @@ export default function ToolsPage() {
   const [result, setResult] = useState<any>(null);
   const [processingTime, setProcessingTime] = useState<number>(0);
   
-  // Progress tracking
+  // Progress tracking - IMPROVED: Track specific operation
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [processingProgress, setProcessingProgress] = useState<number>(0);
   const [currentOperation, setCurrentOperation] = useState<string>('');
+  const [loadingOperation, setLoadingOperation] = useState<string | null>(null); // NEW: Track which operation is running
+  const [abortController, setAbortController] = useState<AbortController | null>(null); // NEW: For canceling operations
   
   // Multi-file upload for Merge PDFs
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
+  // Batch conversion mode
+  const [batchMode, setBatchMode] = useState<boolean>(false);
+  const [batchFiles, setBatchFiles] = useState<File[]>([]);
+  const [batchOperation, setBatchOperation] = useState<'word-to-pdf' | 'pdf-to-word' | 'excel-to-pdf' | 'image-to-pdf' | 'compress-pdf' | 'bulk-pdf' | 'merge-word-to-pdf' | null>(null);
+  const [bulkFormat, setBulkFormat] = useState<'word' | 'excel' | 'image'>('word'); // For bulk PDF conversion
+  const [isDraggingBatch, setIsDraggingBatch] = useState<boolean>(false); // For drag visual feedback
+  const [draggedBatchIndex, setDraggedBatchIndex] = useState<number | null>(null); // For batch file reordering
   
   // PDF Operations state
   const [pdfOperation, setPdfOperation] = useState<'merge' | 'split' | 'rotate' | 'watermark' | 'protect' | 'unlock' | 'to-images' | 'page-numbers' | null>(null);
@@ -54,6 +66,30 @@ export default function ToolsPage() {
     return null;
   };
 
+  // Helper: Check if a specific operation is running
+  const isOperationLoading = (operation: string): boolean => {
+    return loadingOperation === operation;
+  };
+
+  // Helper: Check if ANY operation is running
+  const isAnyOperationLoading = (): boolean => {
+    return loadingOperation !== null;
+  };
+
+  // Cancel current operation
+  const handleCancelOperation = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+      setLoadingOperation(null);
+      setLoading(false);
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+      toast('❌ Đã hủy thao tác!', { icon: 'ℹ️' });
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setSelectedFile(e.target.files[0]);
@@ -63,9 +99,77 @@ export default function ToolsPage() {
 
   const handleMultipleFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]); // Store first file for display
+      const newFiles = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      setSelectedFile(newFiles[0]); // Store first file for display
       setResult(null);
     }
+  };
+
+  // Drag & Drop handlers for file reordering
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    // Reorder files
+    const newFiles = [...selectedFiles];
+    const draggedFile = newFiles[draggedIndex];
+    newFiles.splice(draggedIndex, 1);
+    newFiles.splice(index, 0, draggedFile);
+    
+    setSelectedFiles(newFiles);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const moveFile = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= selectedFiles.length) return;
+    
+    const newFiles = [...selectedFiles];
+    const [movedFile] = newFiles.splice(fromIndex, 1);
+    newFiles.splice(toIndex, 0, movedFile);
+    setSelectedFiles(newFiles);
+  };
+
+  // Batch file reordering handlers
+  const handleBatchDragStart = (index: number) => {
+    setDraggedBatchIndex(index);
+  };
+
+  const handleBatchDragOver = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault();
+    
+    if (draggedBatchIndex === null || draggedBatchIndex === index) return;
+
+    // Reorder batch files
+    const newFiles = [...batchFiles];
+    const draggedFile = newFiles[draggedBatchIndex];
+    newFiles.splice(draggedBatchIndex, 1);
+    newFiles.splice(index, 0, draggedFile);
+    
+    setBatchFiles(newFiles);
+    setDraggedBatchIndex(index);
+  };
+
+  const handleBatchDragEnd = () => {
+    setDraggedBatchIndex(null);
+  };
+
+  const moveBatchFile = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= batchFiles.length) return;
+    
+    const newFiles = [...batchFiles];
+    const [movedFile] = newFiles.splice(fromIndex, 1);
+    newFiles.splice(toIndex, 0, movedFile);
+    setBatchFiles(newFiles);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -79,8 +183,17 @@ export default function ToolsPage() {
   // Document: Word to PDF
   const handleWordToPdf = async () => {
     if (!selectedFile) return;
+    
+    // Check if another operation is running
+    if (isAnyOperationLoading()) {
+      toast('⚠️ Một thao tác khác đang chạy. Vui lòng đợi hoặc hủy thao tác đó!', { icon: '⚠️' });
+      return;
+    }
 
+    const controller = new AbortController();
+    setAbortController(controller);
     setLoading(true);
+    setLoadingOperation('word-to-pdf'); // Set specific operation
     setUploadProgress(0);
     setProcessingProgress(0);
     setCurrentOperation('Word → PDF');
@@ -100,6 +213,7 @@ export default function ToolsPage() {
       
       const response = await axios.post(`${API_BASE}/documents/convert/word-to-pdf`, formData, {
         responseType: 'blob',
+        signal: controller.signal, // Add abort signal
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -146,6 +260,13 @@ export default function ToolsPage() {
       });
     } catch (error: any) {
       clearInterval(uploadInterval);
+      
+      // Check if operation was aborted
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        toast('❌ Đã hủy chuyển đổi Word → PDF', { icon: 'ℹ️' });
+        return;
+      }
+      
       const errorMsg = error.response?.data?.detail || 'Conversion failed';
       toast.error(errorMsg);
       setResult({
@@ -155,6 +276,8 @@ export default function ToolsPage() {
       });
     } finally {
       setLoading(false);
+      setLoadingOperation(null); // Clear operation
+      setAbortController(null); // Clear abort controller
       setUploadProgress(0);
       setProcessingProgress(0);
       setCurrentOperation('');
@@ -1182,6 +1305,387 @@ export default function ToolsPage() {
     }
   };
 
+  // ==================== BATCH CONVERSION HANDLERS ====================
+
+  // Batch: Word to PDF
+  const handleBatchWordToPdf = async () => {
+    if (batchFiles.length === 0) {
+      toast.error('Vui lòng upload ít nhất 1 file');
+      return;
+    }
+
+    setLoading(true);
+    setUploadProgress(0);
+    setProcessingProgress(0);
+    setCurrentOperation(`Chuyển đổi ${batchFiles.length} file Word → PDF`);
+    const startTime = Date.now();
+
+    const formData = new FormData();
+    batchFiles.forEach(file => {
+      formData.append('files', file);
+    });
+
+    try {
+      const response = await axios.post(`${API_BASE}/documents/batch/word-to-pdf`, formData, {
+        responseType: 'blob',
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percent);
+          }
+        },
+      });
+
+      setUploadProgress(100);
+      for (let i = 0; i <= 100; i += 20) {
+        setProcessingProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      const processingTimeMs = Date.now() - startTime;
+
+      // Download ZIP
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `converted_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã chuyển đổi ${batchFiles.length} file thành công!`);
+      setResult({
+        type: 'download',
+        action: `Batch Convert ${batchFiles.length} Word → PDF`,
+        originalFile: `${batchFiles.length} files`,
+        originalSize: batchFiles.reduce((sum, f) => sum + f.size, 0),
+        outputFile: `converted_${batchFiles.length}_files.zip`,
+        outputSize: response.data.size,
+        processingTime: processingTimeMs,
+        compressionRatio: '0',
+        downloadUrl: url
+      });
+
+      // Clear batch files
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || 'Batch conversion failed';
+      toast.error(errorMsg);
+      setResult({
+        type: 'error',
+        message: errorMsg,
+        originalFile: `${batchFiles.length} files`
+      });
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+    }
+  };
+
+  // Batch: PDF to Word
+  const handleBatchPdfToWord = async () => {
+    if (batchFiles.length === 0) return;
+
+    setLoading(true);
+    setUploadProgress(0);
+    setProcessingProgress(0);
+    setCurrentOperation(`Chuyển đổi ${batchFiles.length} file PDF → Word`);
+    const startTime = Date.now();
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await axios.post(`${API_BASE}/documents/batch/pdf-to-word`, formData, {
+        responseType: 'blob',
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+          }
+        },
+      });
+
+      setUploadProgress(100);
+      for (let i = 0; i <= 100; i += 20) {
+        setProcessingProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `converted_word_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã chuyển đổi ${batchFiles.length} file thành công!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Batch conversion failed');
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+    }
+  };
+
+  // Batch: Excel to PDF
+  const handleBatchExcelToPdf = async () => {
+    if (batchFiles.length === 0) return;
+
+    setLoading(true);
+    setCurrentOperation(`Chuyển đổi ${batchFiles.length} file Excel → PDF`);
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await axios.post(`${API_BASE}/documents/batch/excel-to-pdf`, formData, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `excel_to_pdf_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã chuyển đổi ${batchFiles.length} file!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Batch conversion failed');
+    } finally {
+      setLoading(false);
+      setCurrentOperation('');
+    }
+  };
+
+  // Batch: Image to PDF
+  const handleBatchImageToPdf = async () => {
+    if (batchFiles.length === 0) return;
+
+    setLoading(true);
+    setCurrentOperation(`Chuyển đổi ${batchFiles.length} ảnh → PDF`);
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await axios.post(`${API_BASE}/documents/batch/image-to-pdf`, formData, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `images_to_pdf_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã chuyển đổi ${batchFiles.length} ảnh!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Batch conversion failed');
+    } finally {
+      setLoading(false);
+      setCurrentOperation('');
+    }
+  };
+
+  // Batch: Compress PDF
+  const handleBatchCompressPdf = async () => {
+    if (batchFiles.length === 0) return;
+
+    setLoading(true);
+    setCurrentOperation(`Nén ${batchFiles.length} file PDF`);
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+    formData.append('quality', 'medium');
+
+    try {
+      const response = await axios.post(`${API_BASE}/documents/batch/compress-pdf`, formData, {
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `compressed_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã nén ${batchFiles.length} file!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Batch compression failed');
+    } finally {
+      setLoading(false);
+      setCurrentOperation('');
+    }
+  };
+
+  // Bulk: Convert many PDFs to one format (Word/Excel/Image)
+  const handleBulkPdfConvert = async () => {
+    if (batchFiles.length === 0) {
+      toast.error('Vui lòng upload ít nhất 1 file PDF');
+      return;
+    }
+
+    setLoading(true);
+    setUploadProgress(0);
+    setProcessingProgress(0);
+    
+    const formatNames = {
+      word: 'Word',
+      excel: 'Excel',
+      image: 'Hình ảnh'
+    };
+    
+    setCurrentOperation(`Chuyển đổi ${batchFiles.length} PDF → ${formatNames[bulkFormat]}`);
+    const startTime = Date.now();
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/documents/batch/pdf-to-multiple?format=${bulkFormat}`,
+        formData,
+        {
+          responseType: 'blob',
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percent);
+            }
+          },
+        }
+      );
+
+      // Simulate processing progress
+      setUploadProgress(100);
+      for (let i = 0; i <= 100; i += 20) {
+        setProcessingProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+      // Download ZIP
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bulk_pdf_to_${bulkFormat}_${batchFiles.length}_files.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã chuyển đổi ${batchFiles.length} PDF → ${formatNames[bulkFormat]} trong ${duration}s!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+      setBulkFormat('word');
+    } catch (error: any) {
+      console.error('Bulk PDF conversion error:', error);
+      toast.error(error.response?.data?.detail || `Bulk conversion to ${bulkFormat} failed`);
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+    }
+  };
+
+  // Merge Word files to single PDF
+  const handleMergeWordToPdf = async () => {
+    if (batchFiles.length === 0) {
+      toast.error('Vui lòng upload ít nhất 1 file Word');
+      return;
+    }
+
+    const controller = new AbortController();
+    setAbortController(controller);
+    setLoading(true);
+    setLoadingOperation('merge-word-to-pdf'); // Track specific operation
+    setUploadProgress(0);
+    setProcessingProgress(0);
+    setCurrentOperation(`Gộp ${batchFiles.length} file Word → 1 PDF`);
+    const startTime = Date.now();
+
+    const formData = new FormData();
+    batchFiles.forEach(file => formData.append('files', file));
+
+    try {
+      const response = await axios.post(
+        `${API_BASE}/documents/batch/merge-word-to-pdf`,
+        formData,
+        {
+          responseType: 'blob',
+          signal: controller.signal, // Add abort signal
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percent);
+            }
+          },
+        }
+      );
+
+      // Simulate processing progress
+      setUploadProgress(100);
+      for (let i = 0; i <= 100; i += 20) {
+        setProcessingProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      const endTime = Date.now();
+      const duration = ((endTime - startTime) / 1000).toFixed(1);
+
+      // Download merged PDF
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `merged_${batchFiles.length}_documents.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(`✅ Đã gộp ${batchFiles.length} file Word thành 1 PDF trong ${duration}s!`);
+      setBatchFiles([]);
+      setBatchMode(false);
+    } catch (error: any) {
+      // Check if operation was aborted
+      if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+        toast('❌ Đã hủy gộp Word files', { icon: 'ℹ️' });
+        return;
+      }
+      
+      console.error('Merge Word to PDF error:', error);
+      toast.error(error.response?.data?.detail || 'Failed to merge Word files');
+    } finally {
+      setLoading(false);
+      setLoadingOperation(null); // Clear operation
+      setAbortController(null); // Clear abort controller
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6">
@@ -1221,11 +1725,262 @@ export default function ToolsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {pdfOperation === 'merge' ? 'Upload Multiple PDFs' : 'Upload File'}
+              {pdfOperation === 'merge' ? 'Upload Multiple PDFs' : batchMode ? `Batch: ${batchOperation?.toUpperCase()}` : 'Upload File'}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {pdfOperation === 'merge' ? (
+            {batchMode ? (
+              // Batch Mode Upload
+              <div className="space-y-4">
+                <div
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingBatch(false);
+                    const files = Array.from(e.dataTransfer.files);
+                    setBatchFiles(prev => [...prev, ...files]);
+                    if (files.length > 0) {
+                      toast.success(`✅ Đã thêm ${files.length} file(s)`);
+                    }
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingBatch(true);
+                  }}
+                  onDragLeave={() => setIsDraggingBatch(false)}
+                  className={`
+                    border-2 border-dashed rounded-lg p-6 text-center transition-all cursor-pointer
+                    ${isDraggingBatch 
+                      ? 'border-purple-500 bg-purple-100 scale-105 shadow-lg' 
+                      : 'border-purple-300 bg-purple-50 hover:border-purple-500'
+                    }
+                  `}
+                  onClick={() => document.getElementById('batchFileInput')?.click()}
+                >
+                  <Upload className={`w-10 h-10 mx-auto mb-3 transition-all ${isDraggingBatch ? 'text-purple-600 scale-110' : 'text-purple-500'}`} />
+                  <p className="text-md font-medium mb-1 text-purple-900">
+                    📁 Click để chọn NHIỀU file cùng lúc
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    Hoặc kéo thả nhiều file vào đây
+                  </p>
+                  <p className="text-xs text-purple-600 mt-2 font-semibold">
+                    � Tip: Giữ Ctrl/Cmd + Click để chọn nhiều files
+                  </p>
+                  <input
+                    id="batchFileInput"
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files);
+                        setBatchFiles(prev => [...prev, ...newFiles]);
+                        toast.success(`✅ Đã thêm ${newFiles.length} file(s)`);
+                      }
+                    }}
+                    accept={
+                      batchOperation === 'word-to-pdf' ? '.docx,.doc' :
+                      batchOperation === 'pdf-to-word' ? '.pdf' :
+                      batchOperation === 'excel-to-pdf' ? '.xlsx,.xls' :
+                      batchOperation === 'image-to-pdf' ? 'image/*' :
+                      batchOperation === 'compress-pdf' ? '.pdf' :
+                      batchOperation === 'bulk-pdf' ? '.pdf' : '*'
+                    }
+                    multiple
+                  />
+                </div>
+
+                {/* Batch File List with Drag & Drop */}
+                {batchFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        {batchFiles.length} file(s) đã chọn
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setBatchFiles([])}
+                      >
+                        Xóa Tất Cả
+                      </Button>
+                    </div>
+                    
+                    <div className="p-3 bg-purple-50 border border-purple-300 rounded-lg">
+                      <p className="text-xs text-purple-800 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                        <strong>
+                          {batchOperation === 'bulk-pdf' 
+                            ? 'Bulk Mode: Chuyển PDF sang nhiều định dạng' 
+                            : batchOperation === 'merge-word-to-pdf'
+                            ? 'Merge Mode: Gộp nhiều Word thành 1 PDF duy nhất'
+                            : 'Batch Mode: Tất cả file sẽ được convert cùng lúc'
+                          }
+                        </strong>
+                      </p>
+                      {(batchOperation === 'merge-word-to-pdf' || batchFiles.length > 1) && (
+                        <p className="text-xs text-purple-700 mt-2 flex items-center gap-1">
+                          🔄 <strong>Sắp xếp thứ tự:</strong> Kéo thả hoặc dùng nút ↑↓ để di chuyển file
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Format selector for bulk PDF conversion */}
+                    {batchOperation === 'bulk-pdf' && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">
+                          📁 Chọn định dạng đích:
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => setBulkFormat('word')}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              bulkFormat === 'word'
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">📝</div>
+                            <div className="text-xs font-medium">Word</div>
+                          </button>
+                          <button
+                            onClick={() => setBulkFormat('excel')}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              bulkFormat === 'excel'
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 hover:border-green-300'
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">📊</div>
+                            <div className="text-xs font-medium">Excel</div>
+                          </button>
+                          <button
+                            onClick={() => setBulkFormat('image')}
+                            className={`p-3 rounded-lg border-2 transition-all ${
+                              bulkFormat === 'image'
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-orange-300'
+                            }`}
+                          >
+                            <div className="text-2xl mb-1">🖼️</div>
+                            <div className="text-xs font-medium">Images</div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="max-h-96 overflow-y-auto space-y-2">
+                      {batchFiles.map((file, idx) => (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          draggable
+                          onDragStart={() => handleBatchDragStart(idx)}
+                          onDragOver={(e) => handleBatchDragOver(e, idx)}
+                          onDragEnd={handleBatchDragEnd}
+                          className={`flex items-center gap-3 p-3 rounded-lg border-2 transition-all cursor-move ${
+                            draggedBatchIndex === idx
+                              ? 'border-purple-500 bg-purple-100 shadow-lg scale-105'
+                              : 'bg-white border-gray-200 hover:border-purple-300'
+                          }`}
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                            {idx + 1}
+                          </div>
+
+                          <span className="text-2xl flex-shrink-0">
+                            {file.type.includes('image') ? '🖼️' : 
+                             file.name.endsWith('.pdf') ? '📕' :
+                             file.name.endsWith('.docx') || file.name.endsWith('.doc') ? '📝' :
+                             file.name.endsWith('.xlsx') || file.name.endsWith('.xls') ? '📊' : '📄'}
+                          </span>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate text-gray-900">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+
+                          {/* Move up/down buttons */}
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveBatchFile(idx, idx - 1)}
+                              disabled={idx === 0}
+                              className="h-6 w-6 p-0 hover:bg-purple-100"
+                              title="Di chuyển lên"
+                            >
+                              ↑
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveBatchFile(idx, idx + 1)}
+                              disabled={idx === batchFiles.length - 1}
+                              className="h-6 w-6 p-0 hover:bg-purple-100"
+                              title="Di chuyển xuống"
+                            >
+                              ↓
+                            </Button>
+                          </div>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setBatchFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="flex-shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            ✕
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Button
+                      onClick={() => {
+                        if (batchOperation === 'word-to-pdf') handleBatchWordToPdf();
+                        else if (batchOperation === 'pdf-to-word') handleBatchPdfToWord();
+                        else if (batchOperation === 'excel-to-pdf') handleBatchExcelToPdf();
+                        else if (batchOperation === 'image-to-pdf') handleBatchImageToPdf();
+                        else if (batchOperation === 'compress-pdf') handleBatchCompressPdf();
+                        else if (batchOperation === 'bulk-pdf') handleBulkPdfConvert();
+                        else if (batchOperation === 'merge-word-to-pdf') handleMergeWordToPdf();
+                      }}
+                      disabled={
+                        batchFiles.length === 0 || 
+                        isOperationLoading(batchOperation === 'merge-word-to-pdf' ? 'merge-word-to-pdf' : `batch-${batchOperation}`)
+                      }
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    >
+                      {isAnyOperationLoading() ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '⚡'}
+                      {batchOperation === 'bulk-pdf' 
+                        ? `Convert ${batchFiles.length} PDF → ${bulkFormat.toUpperCase()}`
+                        : batchOperation === 'merge-word-to-pdf'
+                        ? `Gộp ${batchFiles.length} Word → 1 PDF`
+                        : `Convert ${batchFiles.length} File(s)`
+                      }
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setBatchMode(false);
+                        setBatchFiles([]);
+                        setBatchOperation(null);
+                      }}
+                      className="w-full"
+                    >
+                      ← Quay về chế độ đơn file
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : pdfOperation === 'merge' ? (
               // Multi-file upload for Merge PDFs
               <div className="space-y-4">
                 <div
@@ -1265,48 +2020,131 @@ export default function ToolsPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">
-                        {selectedFiles.length} file(s) selected
+                        {selectedFiles.length} file(s) được chọn
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedFiles([])}
                       >
-                        Clear All
+                        Xóa Tất Cả
                       </Button>
                     </div>
-                    <div className="max-h-60 overflow-y-auto space-y-2">
+                    
+                    <div className="p-3 bg-blue-50 border border-blue-300 rounded-lg">
+                      <p className="text-xs text-blue-800 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                        <strong>Kéo thả</strong> để sắp xếp thứ tự file (từ trên xuống dưới)
+                      </p>
+                    </div>
+                    
+                    <div className="max-h-96 overflow-y-auto space-y-2">
                       {selectedFiles.map((file, idx) => (
                         <div
-                          key={idx}
-                          className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                          key={`${file.name}-${idx}`}
+                          draggable
+                          onDragStart={() => handleDragStart(idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragEnd={handleDragEnd}
+                          className={`
+                            flex items-center gap-3 p-3 bg-white rounded-lg border-2 
+                            transition-all duration-200 cursor-move
+                            ${draggedIndex === idx 
+                              ? 'border-blue-500 shadow-lg scale-105 bg-blue-50' 
+                              : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                            }
+                          `}
                         >
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className="text-lg">📄</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{file.name}</p>
-                              <p className="text-xs text-gray-500">
-                                {(file.size / 1024).toFixed(1)} KB
-                              </p>
-                            </div>
+                          {/* Order Number */}
+                          <div className={`
+                            flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                            font-bold text-sm
+                            ${draggedIndex === idx 
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                            }
+                          `}>
+                            {idx + 1}
                           </div>
+
+                          {/* Drag Handle */}
+                          <div className="flex-shrink-0 text-gray-400 hover:text-blue-500 cursor-grab active:cursor-grabbing">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"></path>
+                            </svg>
+                          </div>
+
+                          {/* File Icon */}
+                          <span className="text-2xl flex-shrink-0">📄</span>
+
+                          {/* File Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate text-gray-900">
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+
+                          {/* Move Buttons */}
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={() => moveFile(idx, idx - 1)}
+                              disabled={idx === 0}
+                              className={`
+                                p-1 rounded transition-colors
+                                ${idx === 0 
+                                  ? 'text-gray-300 cursor-not-allowed' 
+                                  : 'text-blue-600 hover:bg-blue-100 active:bg-blue-200'
+                                }
+                              `}
+                              title="Di chuyển lên"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => moveFile(idx, idx + 1)}
+                              disabled={idx === selectedFiles.length - 1}
+                              className={`
+                                p-1 rounded transition-colors
+                                ${idx === selectedFiles.length - 1
+                                  ? 'text-gray-300 cursor-not-allowed' 
+                                  : 'text-blue-600 hover:bg-blue-100 active:bg-blue-200'
+                                }
+                              `}
+                              title="Di chuyển xuống"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+                          </div>
+
+                          {/* Delete Button */}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="flex-shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
                             ✕
                           </Button>
                         </div>
                       ))}
                     </div>
+                    
                     <Button
                       onClick={handleMergePdfs}
                       disabled={loading || selectedFiles.length < 2}
-                      className="w-full"
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                     >
                       {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
-                      Merge {selectedFiles.length} PDFs
+                      Gộp {selectedFiles.length} PDFs theo thứ tự
                     </Button>
                   </div>
                 )}
@@ -1411,11 +2249,45 @@ export default function ToolsPage() {
                           
                           <Button
                             onClick={handleWordToPdf}
-                            disabled={loading}
+                            disabled={isOperationLoading('word-to-pdf')}
                             className="w-full bg-blue-600 hover:bg-blue-700"
                           >
-                            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
+                            {isOperationLoading('word-to-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
                             <span className="ml-2">Chuyển sang PDF</span>
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              if (isAnyOperationLoading()) {
+                                toast('⚠️ Một thao tác khác đang chạy!', { icon: '⚠️' });
+                                return;
+                              }
+                              setBatchMode(true);
+                              setBatchOperation('word-to-pdf');
+                              setBatchFiles([selectedFile]);
+                            }}
+                            disabled={isOperationLoading('batch-word-to-pdf')}
+                            className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                          >
+                            {isOperationLoading('batch-word-to-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
+                            <span className="ml-2">Chuyển NHIỀU file Word → PDF</span>
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              if (isAnyOperationLoading()) {
+                                toast('⚠️ Một thao tác khác đang chạy!', { icon: '⚠️' });
+                                return;
+                              }
+                              setBatchMode(true);
+                              setBatchOperation('merge-word-to-pdf');
+                              setBatchFiles([selectedFile]);
+                            }}
+                            disabled={isOperationLoading('merge-word-to-pdf')}
+                            className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                          >
+                            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔗'}
+                            <span className="ml-2">Gộp NHIỀU Word → 1 PDF</span>
                           </Button>
                           
                           <Button
@@ -1451,6 +2323,19 @@ export default function ToolsPage() {
                           >
                             {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
                             <span className="ml-2">Chuyển sang PDF</span>
+                          </Button>
+                          
+                          <Button
+                            onClick={() => {
+                              setBatchMode(true);
+                              setBatchOperation('excel-to-pdf');
+                              setBatchFiles([selectedFile]);
+                            }}
+                            disabled={loading}
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                          >
+                            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
+                            <span className="ml-2">Chuyển NHIỀU file Excel → PDF</span>
                           </Button>
                           
                           <Button
@@ -1528,12 +2413,39 @@ export default function ToolsPage() {
                             </Button>
                             
                             <Button
+                              onClick={() => {
+                                setBatchMode(true);
+                                setBatchOperation('pdf-to-word');
+                                setBatchFiles([selectedFile]);
+                              }}
+                              disabled={loading}
+                              className="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
+                            >
+                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
+                              <span className="ml-2">Chuyển NHIỀU PDF → Word</span>
+                            </Button>
+                            
+                            <Button
                               onClick={handlePdfToExcel}
                               disabled={loading}
                               className="w-full bg-green-600 hover:bg-green-700"
                             >
                               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📊'}
                               <span className="ml-2">Chuyển sang Excel</span>
+                            </Button>
+                            
+                            <Button
+                              onClick={() => {
+                                setBatchMode(true);
+                                setBatchOperation('bulk-pdf');
+                                setBatchFiles([selectedFile]);
+                                setBulkFormat('word');
+                              }}
+                              disabled={loading}
+                              className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 hover:from-purple-700 hover:via-blue-700 hover:to-green-700"
+                            >
+                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔀'}
+                              <span className="ml-2">BULK: PDF → Word/Excel/Image</span>
                             </Button>
                           </div>
 
@@ -1569,6 +2481,19 @@ export default function ToolsPage() {
                             >
                               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📦'}
                               <span className="ml-2">Nén PDF</span>
+                            </Button>
+                            
+                            <Button
+                              onClick={() => {
+                                setBatchMode(true);
+                                setBatchOperation('compress-pdf');
+                                setBatchFiles([selectedFile]);
+                              }}
+                              disabled={loading}
+                              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+                            >
+                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
+                              <span className="ml-2">Nén NHIỀU PDF</span>
                             </Button>
                             
                             <Button
@@ -2007,6 +2932,19 @@ export default function ToolsPage() {
                               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
                               <span className="ml-2">Chuyển sang PDF</span>
                             </Button>
+                            
+                            <Button
+                              onClick={() => {
+                                setBatchMode(true);
+                                setBatchOperation('image-to-pdf');
+                                setBatchFiles([selectedFile]);
+                              }}
+                              disabled={loading}
+                              className="w-full bg-gradient-to-r from-orange-600 to-pink-600 hover:from-orange-700 hover:to-pink-700"
+                            >
+                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
+                              <span className="ml-2">Chuyển NHIỀU ảnh → PDF</span>
+                            </Button>
                           </div>
 
                           <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
@@ -2150,9 +3088,19 @@ export default function ToolsPage() {
                 </div>
               )}
 
-              {/* Spinning Loader */}
-              <div className="flex items-center justify-center py-4">
+              {/* Spinning Loader with Cancel Button */}
+              <div className="flex items-center justify-center gap-4 py-4">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                {abortController && (
+                  <Button
+                    onClick={handleCancelOperation}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                  >
+                    ❌ Hủy
+                  </Button>
+                )}
               </div>
 
               {/* Status Message */}

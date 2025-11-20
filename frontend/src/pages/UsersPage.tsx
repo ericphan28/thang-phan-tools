@@ -117,14 +117,14 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Quản lý người dùng</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold">Quản lý người dùng</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Quản lý tài khoản và quyền hạn người dùng
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => setIsCreateModalOpen(true)} className="w-full sm:w-auto">
           <Plus className="h-4 w-4 mr-2" />
           Thêm người dùng
         </Button>
@@ -163,8 +163,8 @@ export default function UsersPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 px-4 py-2 bg-muted rounded-lg text-sm font-medium">
+              {/* Table Header - Hidden on mobile */}
+              <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 bg-muted rounded-lg text-sm font-medium">
                 <div className="col-span-3">Tên đăng nhập</div>
                 <div className="col-span-3">Email</div>
                 <div className="col-span-2">Vai trò</div>
@@ -177,16 +177,21 @@ export default function UsersPage() {
               {usersData?.users.map((user) => (
                 <div
                   key={user.id}
-                  className="grid grid-cols-12 gap-4 px-4 py-3 border rounded-lg items-center hover:bg-accent/50 transition-colors"
+                  className="md:grid md:grid-cols-12 gap-4 px-4 py-3 border rounded-lg md:items-center hover:bg-accent/50 transition-colors space-y-3 md:space-y-0"
                 >
-                  <div className="col-span-3">
+                  <div className="md:col-span-3">
+                    <div className="md:hidden text-xs text-muted-foreground mb-1">Tên đăng nhập</div>
                     <div className="font-medium">{user.username}</div>
                     <div className="text-sm text-muted-foreground">
                       {user.full_name || 'Chưa có tên'}
                     </div>
                   </div>
-                  <div className="col-span-3 text-sm">{user.email}</div>
-                  <div className="col-span-2">
+                  <div className="md:col-span-3">
+                    <div className="md:hidden text-xs text-muted-foreground mb-1">Email</div>
+                    <div className="text-sm">{user.email}</div>
+                  </div>
+                  <div className="md:col-span-2">
+                    <div className="md:hidden text-xs text-muted-foreground mb-1">Vai trò</div>
                     <div className="flex flex-wrap gap-1">
                       {user.roles.map((role) => (
                         <span
@@ -198,7 +203,8 @@ export default function UsersPage() {
                       ))}
                     </div>
                   </div>
-                  <div className="col-span-1">
+                  <div className="md:col-span-1 flex items-center gap-2">
+                    <div className="md:hidden text-xs text-muted-foreground">Trạng thái:</div>
                     {user.is_active ? (
                       <span className="flex items-center gap-1 text-xs text-green-600">
                         <CheckCircle className="h-3 w-3" />
@@ -211,18 +217,19 @@ export default function UsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="col-span-1">
+                  <div className="md:col-span-1">
                     {user.is_superuser && (
-                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded inline-block">
                         Quản trị
                       </span>
                     )}
                   </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2">
+                  <div className="md:col-span-2 flex items-center justify-start md:justify-end gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleToggleActive(user)}
+                      className="flex-1 sm:flex-none"
                     >
                       {user.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
                     </Button>

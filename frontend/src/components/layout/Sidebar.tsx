@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 
@@ -11,7 +11,12 @@ const menuItems = [
   { icon: Wrench, label: 'Công cụ', path: '/tools' },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
@@ -20,22 +25,46 @@ export default function Sidebar() {
     window.location.href = '/login';
   };
 
+  const handleLinkClick = () => {
+    // Close sidebar on mobile when clicking a link
+    if (window.innerWidth < 768) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="h-screen w-64 bg-card border-r border-border flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-border">
-        <h1 className="text-xl font-bold text-primary">Quản Trị Hệ Thống</h1>
-        <p className="text-sm text-muted-foreground mt-1">Bảng điều khiển</p>
+    <div 
+      className={`
+        fixed md:static inset-y-0 left-0 z-50
+        w-64 bg-card border-r border-border flex flex-col
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}
+    >
+      {/* Logo & Close button */}
+      <div className="p-6 border-b border-border flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-primary">Quản Trị Hệ Thống</h1>
+          <p className="text-sm text-muted-foreground mt-1">Bảng điều khiển</p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onClose}
+        >
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           
           return (
-            <Link key={item.path} to={item.path}>
+            <Link key={item.path} to={item.path} onClick={handleLinkClick}>
               <div
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
