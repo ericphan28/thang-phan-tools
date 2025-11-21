@@ -11,8 +11,7 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     curl \
-    # OpenCV dependencies
-    libopencv-dev \
+    # Image processing
     libsm6 \
     libxext6 \
     libxrender-dev \
@@ -28,9 +27,6 @@ RUN apt-get update && apt-get install -y \
     libpoppler-cpp-dev \
     # Image processing
     imagemagick \
-    # dlib dependencies
-    libopenblas-dev \
-    liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first (for caching)

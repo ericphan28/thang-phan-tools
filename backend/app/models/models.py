@@ -29,7 +29,6 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    faces = relationship("Face", back_populates="user")
     api_logs = relationship("APILog", back_populates="user")
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     api_keys = relationship("APIKey", back_populates="user")
@@ -61,24 +60,6 @@ class Permission(Base):
     
     # Relationships
     role = relationship("Role", back_populates="permissions")
-
-
-class Face(Base):
-    """Face encodings storage"""
-    __tablename__ = "faces"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    name = Column(String, nullable=False, index=True)
-    external_id = Column(String, nullable=True, index=True)  # For integration with external systems
-    encoding = Column(ARRAY(Float), nullable=False)  # 128-dimensional face encoding
-    image_path = Column(String, nullable=True)
-    face_metadata = Column(Text, nullable=True)  # JSON string for additional info (renamed to avoid SQLAlchemy conflict)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = relationship("User", back_populates="faces")
 
 
 class APILog(Base):
