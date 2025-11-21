@@ -4,28 +4,22 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install ONLY runtime dependencies (no dev tools)
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
-    # Image processing
+    # OpenCV runtime dependencies
     libsm6 \
     libxext6 \
-    libxrender-dev \
     libgomp1 \
     libglib2.0-0 \
-    # Tesseract OCR
+    libglvnd0 \
+    libgl1 \
+    # Tesseract OCR (runtime only)
     tesseract-ocr \
     tesseract-ocr-eng \
     tesseract-ocr-vie \
-    libtesseract-dev \
-    # Document processing
+    # PDF processing (runtime only)
     poppler-utils \
-    libpoppler-cpp-dev \
-    # Image processing
+    # Image conversion
     imagemagick \
     && rm -rf /var/lib/apt/lists/*
 

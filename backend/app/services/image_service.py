@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 from PIL import Image, ImageEnhance, ImageFilter
 import pillow_heif
-from rembg import remove
+# from rembg import remove  # DISABLED: Requires PyTorch (900MB)
 from fastapi import UploadFile, HTTPException
 import aiofiles
 
@@ -201,21 +201,28 @@ class ImageService:
         - Uses SOTA deep learning model
         - Preserves transparency (PNG)
         - Fast inference
+        
+        NOTE: Currently disabled to avoid PyTorch dependency (900MB)
         """
-        # Read image
-        with open(input_path, 'rb') as f:
-            input_data = f.read()
+        raise HTTPException(
+            status_code=501,
+            detail="Background removal is currently disabled. To enable, uncomment 'rembg' in requirements.txt and rebuild."
+        )
         
-        # Remove background (AI inference)
-        output_data = remove(input_data)
-        
-        # Save
-        output_path = self.output_dir / f"{input_path.stem}_no_bg.{output_format}"
-        
-        with open(output_path, 'wb') as f:
-            f.write(output_data)
-        
-        return output_path
+        # # Read image
+        # with open(input_path, 'rb') as f:
+        #     input_data = f.read()
+        # 
+        # # Remove background (AI inference)
+        # output_data = remove(input_data)
+        # 
+        # # Save
+        # output_path = self.output_dir / f"{input_path.stem}_no_bg.{output_format}"
+        # 
+        # with open(output_path, 'wb') as f:
+        #     f.write(output_data)
+        # 
+        # return output_path
     
     # ==================== Image Enhancement ====================
     
