@@ -47,6 +47,9 @@ pdf2image==1.17.0
 pypdfium2==4.26.0
 aiofiles==23.2.1
 
+# Adobe PDF Services (optional - high quality PDF to Word conversion)
+pdfservices-sdk>=4.0.0
+
 # OCR
 pytesseract==0.3.10
 # easyocr==1.7.0  # DISABLED: Requires PyTorch (900MB) - Tesseract OCR is sufficient for Vietnamese text

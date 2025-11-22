@@ -1,6 +1,7 @@
 """
 Modern Document Conversion Service (2025)
 Sử dụng các công nghệ mới nhất để convert documents
+Tích hợp Adobe PDF Services API cho PDF → Word chất lượng cao
 """
 
 import os
@@ -11,6 +12,7 @@ from typing import Optional, List
 import aiofiles
 import httpx
 from fastapi import UploadFile, HTTPException
+import logging
 
 # Document libraries
 from docx import Document
@@ -20,9 +22,26 @@ from pptx import Presentation
 from openpyxl import load_workbook
 import pypdfium2 as pdfium
 
+# Adobe PDF Services (optional)
+try:
+    from adobe.pdfservices.operation.auth.service_principal_credentials import ServicePrincipalCredentials
+    from adobe.pdfservices.operation.pdf_services import PDFServices
+    from adobe.pdfservices.operation.pdf_services_media_type import PDFServicesMediaType
+    from adobe.pdfservices.operation.pdfjobs.jobs.export_pdf_job import ExportPDFJob
+    from adobe.pdfservices.operation.pdfjobs.params.export_pdf.export_pdf_params import ExportPDFParams
+    from adobe.pdfservices.operation.pdfjobs.params.export_pdf.export_pdf_target_format import ExportPDFTargetFormat
+    from adobe.pdfservices.operation.pdfjobs.result.export_pdf_result import ExportPDFResult
+    from adobe.pdfservices.operation.io.cloud_asset import CloudAsset
+    from adobe.pdfservices.operation.io.stream_asset import StreamAsset
+    ADOBE_AVAILABLE = True
+except ImportError:
+    ADOBE_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
 
 class DocumentService:
-    """Modern document processing service sử dụng Gotenberg"""
+    """Modern document processing service sử dụng Gotenberg + Adobe PDF Services"""
     
     def __init__(
         self, 
@@ -42,7 +61,31 @@ class DocumentService:
         else:
             # Production: Gotenberg container, Dev: có thể dùng local LibreOffice
             self.gotenberg_url = os.getenv("GOTENBERG_URL", "http://gotenberg:3000")
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Adobe PDF Services - optional but recommended for better quality
+        self.use_adobe = os.getenv("USE_ADOBE_PDF_API", "false").lower() == "true"
+        self.adobe_credentials = None
+        
+        if self.use_adobe and ADOBE_AVAILABLE:
+            client_id = os.getenv("PDF_SERVICES_CLIENT_ID")
+            client_secret = os.getenv("PDF_SERVICES_CLIENT_SECRET")
+            
+            if client_id and client_secret:
+                try:
+                    self.adobe_credentials = ServicePrincipalCredentials(
+                        client_id=client_id,
+                        client_secret=client_secret
+                    )
+                    logger.info("Adobe PDF Services enabled - High quality PDF to Word conversion available")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Adobe credentials: {e}")
+                    self.use_adobe = False
+            else:
+                logger.warning("USE_ADOBE_PDF_API=true but credentials not found in env")
+                self.use_adobe = False
+        elif self.use_adobe and not ADOBE_AVAILABLE:
+            logger.warning("USE_ADOBE_PDF_API=true but pdfservices-sdk not installed")
+            self.use_adobe = False
         
     async def save_upload_file(self, upload_file: UploadFile) -> Path:
         """Save uploaded file async"""
@@ -262,7 +305,10 @@ class DocumentService:
     ) -> Path:
         """
         Convert PDF to Word (.docx)
-        Uses pdf2docx (pure Python, cross-platform)
+        
+        Strategy:
+        1. Try Adobe PDF Services (if enabled) - Best quality
+        2. Fallback to pdf2docx - Good quality, free
         """
         if input_file.suffix.lower() != '.pdf':
             raise HTTPException(400, "File must be .pdf")
@@ -270,15 +316,90 @@ class DocumentService:
         output_filename = output_filename or input_file.stem + ".docx"
         output_path = self.output_dir / output_filename
         
+        # Try Adobe first if enabled (best quality)
+        if self.use_adobe and self.adobe_credentials:
+            try:
+                logger.info(f"Using Adobe PDF Services for {input_file.name}")
+                return await self._pdf_to_word_adobe(input_file, output_path)
+            except Exception as e:
+                logger.warning(f"Adobe PDF conversion failed: {e}, falling back to pdf2docx")
+        
+        # Fallback to pdf2docx (good quality, free)
+        logger.info(f"Using pdf2docx for {input_file.name}")
+        return await self._pdf_to_word_local(input_file, output_path, start_page, end_page)
+    
+    async def _pdf_to_word_adobe(self, input_file: Path, output_path: Path) -> Path:
+        """
+        Convert PDF to Word using Adobe PDF Services API
+        High quality conversion with AI-powered layout preservation
+        """
+        try:
+            # Read input file
+            async with aiofiles.open(input_file, 'rb') as f:
+                input_stream = await f.read()
+            
+            # Create PDF Services instance
+            pdf_services = PDFServices(credentials=self.adobe_credentials)
+            
+            # Upload file to Adobe
+            input_asset = pdf_services.upload(
+                input_stream=input_stream,
+                mime_type=PDFServicesMediaType.PDF
+            )
+            
+            # Create export parameters
+            export_pdf_params = ExportPDFParams(
+                target_format=ExportPDFTargetFormat.DOCX
+            )
+            
+            # Create and submit job
+            export_pdf_job = ExportPDFJob(
+                input_asset=input_asset,
+                export_pdf_params=export_pdf_params
+            )
+            
+            location = pdf_services.submit(export_pdf_job)
+            
+            # Get result (polling handled by SDK)
+            pdf_services_response = pdf_services.get_job_result(location, ExportPDFResult)
+            
+            # Download result
+            result_asset: CloudAsset = pdf_services_response.get_result().get_asset()
+            stream_asset: StreamAsset = pdf_services.get_content(result_asset)
+            
+            # Save to file
+            async with aiofiles.open(output_path, "wb") as f:
+                await f.write(stream_asset.get_input_stream())
+            
+            logger.info(f"Adobe conversion successful: {output_path}")
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"Adobe PDF Services error: {e}")
+            raise
+    
+    async def _pdf_to_word_local(
+        self,
+        input_file: Path,
+        output_path: Path,
+        start_page: int = 0,
+        end_page: Optional[int] = None
+    ) -> Path:
+        """
+        Convert PDF to Word using pdf2docx (fallback)
+        Good quality, pure Python, free
+        """
         try:
             # pdf2docx is pure Python, works cross-platform
             cv = PDFToWordConverter(str(input_file))
             cv.convert(str(output_path), start=start_page, end=end_page)
             cv.close()
             
+            logger.info(f"pdf2docx conversion successful: {output_path}")
             return output_path
             
         except Exception as e:
+            logger.error(f"pdf2docx conversion error: {e}")
             raise HTTPException(500, f"PDF to Word conversion failed: {str(e)}")
     
     async def pdf_to_excel(
