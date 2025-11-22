@@ -77,6 +77,12 @@ class Settings(BaseSettings):
     ENABLE_SENTRY: bool = False
     SENTRY_DSN: Optional[str] = None
     
+    # Adobe PDF Services API
+    USE_ADOBE_PDF_API: bool = False
+    PDF_SERVICES_CLIENT_ID: Optional[str] = None
+    PDF_SERVICES_CLIENT_SECRET: Optional[str] = None
+    ADOBE_ORG_ID: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
