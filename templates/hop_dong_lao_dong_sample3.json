@@ -1,0 +1,82 @@
+{
+  "contractNumber": "HĐLĐ-2025-015",
+  "signDate": "05/01/2025",
+  
+  "company": {
+    "name": "CÔNG TY TNHH ĐẦU TƯ & PHÁT TRIỂN BẤT ĐỘNG SẢN GOLDEN LAND",
+    "address": "Tầng 20, Tòa Landmark 72, Phạm Hùng, Nam Từ Liêm, Hà Nội",
+    "phone": "024 3999 5555",
+    "taxId": "0111222333",
+    "representative": "Bà Nguyễn Thị Hương"
+  },
+  
+  "employee": {
+    "fullName": "Hoàng Minh Đức",
+    "birthDate": "10/11/1988",
+    "idNumber": "001188009876",
+    "address": "Biệt thự B12, Khu đô thị Ciputra, Tây Hồ, Hà Nội",
+    "phone": "0911 888 999",
+    "email": "duchoang@gmail.com"
+  },
+  
+  "position": {
+    "title": "Giám Đốc Dự Án",
+    "department": "Ban Điều Hành Dự Án",
+    "startDate": "01/02/2025",
+    "contractType": "Hợp đồng không xác định thời hạn"
+  },
+  
+  "salary": {
+    "base": "50.000.000",
+    "allowance": "20.000.000",
+    "total": "70.000.000"
+  },
+  
+  "tasks": [
+    {
+      "name": "Quản lý toàn diện dự án bất động sản",
+      "description": "Điều hành mọi hoạt động của dự án từ khởi công đến bàn giao, đảm bảo tiến độ, chất lượng và ngân sách"
+    },
+    {
+      "name": "Lập kế hoạch triển khai dự án",
+      "description": "Xây dựng timeline chi tiết, phân bổ nguồn lực, thiết lập các mốc quan trọng cho dự án"
+    },
+    {
+      "name": "Quản lý nhà thầu và đối tác",
+      "description": "Giám sát nhà thầu thi công, điều phối các đơn vị tư vấn thiết kế, giám sát, pháp lý"
+    },
+    {
+      "name": "Báo cáo Ban Giám Đốc",
+      "description": "Báo cáo tiến độ, tài chính, rủi ro dự án hàng tuần/tháng cho Ban lãnh đạo công ty"
+    },
+    {
+      "name": "Quản lý ngân sách dự án",
+      "description": "Kiểm soát chi phí dự án 500+ tỷ đồng, phê duyệt các khoản thanh toán, tối ưu hóa hiệu quả đầu tư"
+    },
+    {
+      "name": "Quản lý team dự án",
+      "description": "Lãnh đạo đội ngũ 20+ thành viên bao gồm kỹ sư, kiến trúc sư, chuyên viên pháp lý"
+    }
+  ],
+  
+  "benefits": [
+    "Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ theo luật",
+    "Bảo hiểm sức khỏe cao cấp Prudential cho cả gia đình (không giới hạn số con)",
+    "Bảo hiểm tai nạn 24/7 với mức bồi thường 1 tỷ đồng",
+    "Thưởng KPI hàng quý 30-100% lương cơ bản",
+    "Thưởng hoàn thành dự án: 1-3% tổng giá trị dự án",
+    "Thưởng Tết Nguyên Đán tối thiểu 5 tháng lương",
+    "Tăng lương hàng năm 15-20% dựa trên hiệu suất",
+    "Du lịch nước ngoài hàng năm (Châu Âu, Mỹ, Úc)",
+    "Xe công ty đưa đón + hỗ trợ xăng xe",
+    "Hỗ trợ laptop Dell Precision, iPhone Pro Max, iPad Pro",
+    "Nghỉ phép 18 ngày/năm + nghỉ sinh nhật",
+    "Thưởng các dịp đặc biệt: cưới (20 triệu), sinh con (10 triệu), ma chay (5 triệu)",
+    "Khám sức khỏe VIP tại Vinmec, Raffles Medical",
+    "Hỗ trợ đào tạo MBA, các khóa học quốc tế (100% chi phí)",
+    "Cơ hội sở hữu cổ phần công ty sau 2 năm",
+    "Văn phòng hạng sang, phòng gym riêng, căng tin 5 sao",
+    "Thưởng thâm niên: 1 tháng lương/năm (tối đa 10 tháng)",
+    "Quà tặng sinh nhật giá trị (5-10 triệu)"
+  ]
+}

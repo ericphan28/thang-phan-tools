@@ -1,0 +1,90 @@
+{
+  "ho_ten": "NGUYỄN VĂN AN",
+  "ten_goi_khac": "An",
+  "ngay_sinh": "15/03/1990",
+  "noi_sinh": "Hà Nội",
+  "que_quan": "Xã Đông Anh, Huyện Đông Anh, Thành phố Hà Nội",
+  "ho_khau": "Số 123, Đường Láng, Quận Đống Đa, Hà Nội",
+  "noi_o_hien_nay": "Số 456, Phố Huế, Quận Hai Bà Trưng, Hà Nội",
+  "dan_toc": "Kinh",
+  "ton_giao": "Không",
+  "cmnd": "001234567890",
+  "cmnd_ngay_cap": "10/01/2020",
+  "cmnd_noi_cap": "Cục Cảnh sát ĐKQL cư trú và DLQG về dân cư",
+  "nghe_nghiep": "Kỹ sư phần mềm",
+  "don_vi_cong_tac": "Công ty TNHH Công nghệ ABC",
+  "dien_thoai": "0912 345 678",
+  "email": "nguyenvanan@email.com",
+  
+  "hoc_van": [
+    {
+      "trinh_do": "Đại học",
+      "chuyen_nganh": "Công nghệ thông tin",
+      "truong": "Đại học Bách Khoa Hà Nội",
+      "nam_tot_nghiep": "2012"
+    },
+    {
+      "trinh_do": "Thạc sĩ",
+      "chuyen_nganh": "Khoa học máy tính",
+      "truong": "Đại học Quốc gia Hà Nội",
+      "nam_tot_nghiep": "2015"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "2012 - 2015",
+      "don_vi": "Công ty TNHH XYZ",
+      "chuc_vu": "Lập trình viên"
+    },
+    {
+      "thoi_gian": "2015 - 2018",
+      "don_vi": "Công ty Cổ phần Tech Solutions",
+      "chuc_vu": "Kỹ sư phần mềm Senior"
+    },
+    {
+      "thoi_gian": "2018 - nay",
+      "don_vi": "Công ty TNHH Công nghệ ABC",
+      "chuc_vu": "Trưởng nhóm phát triển"
+    }
+  ],
+  
+  "bo": {
+    "ho_ten": "Nguyễn Văn Hùng",
+    "nam_sinh": "1965",
+    "nghe_nghiep": "Giáo viên (đã nghỉ hưu)"
+  },
+  
+  "me": {
+    "ho_ten": "Trần Thị Lan",
+    "nam_sinh": "1968",
+    "nghe_nghiep": "Nội trợ"
+  },
+  
+  "vo_chong": {
+    "ho_ten": "Lê Thị Hoa",
+    "nam_sinh": "1992",
+    "nghe_nghiep": "Giáo viên tiểu học"
+  },
+  
+  "con": [
+    {
+      "ho_ten": "Nguyễn Minh Anh",
+      "nam_sinh": "2015",
+      "nghe_nghiep": "Học sinh"
+    },
+    {
+      "ho_ten": "Nguyễn Minh Châu",
+      "nam_sinh": "2018",
+      "nghe_nghiep": "Học sinh"
+    }
+  ],
+  
+  "khen_thuong": "Bằng khen của Bộ trưởng Bộ Thông tin và Truyền thông năm 2020; Giấy khen của Công ty ABC năm 2019, 2021",
+  "ky_luat": "Không",
+  
+  "noi_lam": "Hà Nội",
+  "ngay": "26",
+  "thang": "11",
+  "nam": "2024"
+}

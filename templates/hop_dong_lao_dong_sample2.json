@@ -1,0 +1,74 @@
+{
+  "contractNumber": "HĐLĐ-2024-089",
+  "signDate": "15/12/2024",
+  
+  "company": {
+    "name": "CÔNG TY CỔ PHẦN THƯƠNG MẠI ĐIỆN TỬ VIỆT NAM",
+    "address": "Tầng 7, Tòa CT1A, Khu đô thị Văn Khê, Hà Đông, Hà Nội",
+    "phone": "024 3355 6677",
+    "taxId": "0987654321",
+    "representative": "Phạm Minh Tuấn"
+  },
+  
+  "employee": {
+    "fullName": "Lê Văn Cường",
+    "birthDate": "22/03/1992",
+    "idNumber": "031092005678",
+    "address": "Số 456, Đường Nguyễn Trãi, Thanh Xuân, Hà Nội",
+    "phone": "0985 222 333",
+    "email": "cuonglv@email.com"
+  },
+  
+  "position": {
+    "title": "Marketing Manager",
+    "department": "Phòng Marketing & Truyền Thông",
+    "startDate": "01/01/2025",
+    "contractType": "Hợp đồng xác định thời hạn 2 năm"
+  },
+  
+  "salary": {
+    "base": "35.000.000",
+    "allowance": "10.000.000",
+    "total": "45.000.000"
+  },
+  
+  "tasks": [
+    {
+      "name": "Xây dựng chiến lược Marketing",
+      "description": "Lập kế hoạch và triển khai các chiến dịch marketing online và offline cho sản phẩm/dịch vụ công ty"
+    },
+    {
+      "name": "Quản lý ngân sách Marketing",
+      "description": "Phân bổ và kiểm soát ngân sách marketing, đảm bảo ROI tối ưu cho các chiến dịch"
+    },
+    {
+      "name": "Phát triển thương hiệu",
+      "description": "Xây dựng và phát triển nhận diện thương hiệu, tăng độ nhận diện trên thị trường"
+    },
+    {
+      "name": "Quản lý team Marketing",
+      "description": "Điều hành và phát triển đội ngũ marketing (6 thành viên), đánh giá KPI định kỳ"
+    },
+    {
+      "name": "Phân tích thị trường",
+      "description": "Nghiên cứu thị trường, đối thủ cạnh tranh, xu hướng ngành để đề xuất chiến lược phù hợp"
+    }
+  ],
+  
+  "benefits": [
+    "Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ theo luật",
+    "Bảo hiểm sức khỏe cao cấp cho nhân viên và gia đình (vợ/chồng + 2 con)",
+    "Thưởng KPI hàng tháng từ 20-50% lương cơ bản",
+    "Thưởng Tết Nguyên Đán 3-5 tháng lương tùy hiệu quả công việc",
+    "Tăng lương định kỳ hàng năm dựa trên đánh giá năng lực",
+    "Du lịch công ty 2 lần/năm (trong nước và nước ngoài)",
+    "Team building quý + các hoạt động ngoại khóa",
+    "Xe đưa đón nhân viên",
+    "Hỗ trợ laptop Macbook Pro, điện thoại iPhone công ty",
+    "Nghỉ phép 15 ngày/năm",
+    "Thưởng các dịp lễ: 8/3, 20/10, sinh nhật, cưới hỏi, ma chay",
+    "Khám sức khỏe định kỳ tại bệnh viện quốc tế",
+    "Hỗ trợ đào tạo nâng cao chuyên môn (khóa học, chứng chỉ)",
+    "Văn phòng hiện đại, khu vực gym, game room"
+  ]
+}

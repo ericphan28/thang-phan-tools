@@ -1,0 +1,17 @@
+{
+  "celebrant": {
+    "name": "Ms. Sarah Johnson",
+    "age": "30"
+  },
+  
+  "event": {
+    "date": "Friday, December 20th, 2024",
+    "time": "7:00 PM - 11:00 PM",
+    "venue": "Skyline Rooftop Bar, Lotte Hotel, 54 Liễu Giai, Ba Đình, Hà Nội"
+  },
+  
+  "contact": {
+    "phone": "0909 888 777",
+    "email": "sarah.johnson@gmail.com"
+  }
+}

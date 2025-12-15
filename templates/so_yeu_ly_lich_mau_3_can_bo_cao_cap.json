@@ -1,0 +1,234 @@
+{
+  "co_quan_quan_ly": "Bộ Nội vụ",
+  "don_vi_su_dung": "Vụ Tổ chức cán bộ",
+  "so_hieu": "SYL-2024-003",
+  "ma_so_dinh_danh": "5566778899",
+  "ho_ten": "Phạm Minh Châu",
+  "ngay_sinh": "10/04/1972",
+  "gioi_tinh": "Nam",
+  "noi_sinh": "Quận Ba Đình, TP. Hà Nội",
+  "que_quan": "Huyện Sóc Sơn, TP. Hà Nội",
+  "dan_toc": "Kinh",
+  "ton_giao": "Không",
+  "cccd": "001072005566",
+  "cccd_ngay_cap": "10/03/2020",
+  "sdt": "0903456789",
+  "so_bhxh": "5566778800",
+  "so_bhyt": "HN5566778800123",
+  "noi_o_hien_nay": "Villa 12, Khu đô thị Ciputra, Phường Phú Thượng, Quận Tây Hồ, TP. Hà Nội",
+  "thanh_phan_xuat_than": "Cán bộ, công chức",
+  "nghe_nghiep_truoc": "Giảng viên Đại học Quốc gia Hà Nội",
+  "ngay_tuyen_dung": "01/08/1994",
+  "co_quan_tuyen_dung": "Bộ Nội vụ",
+  "ngay_vao_co_quan": "15/08/1994",
+  "ngay_vao_dang": "15/03/2000",
+  "ngay_chinh_thuc": "15/03/2001",
+  
+  "dao_tao_chuyen_mon": [
+    {
+      "ten_truong": "Đại học Luật Hà Nội",
+      "chuyen_nganh": "Luật Kinh tế",
+      "tu_nam": "1990",
+      "den_nam": "1994",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân"
+    },
+    {
+      "ten_truong": "Học viện Hành chính Quốc gia",
+      "chuyen_nganh": "Quản lý công và Chính sách công",
+      "tu_nam": "2002",
+      "den_nam": "2005",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Thạc sĩ"
+    },
+    {
+      "ten_truong": "Học viện Chính trị Quốc gia Hồ Chí Minh",
+      "chuyen_nganh": "Chính trị học",
+      "tu_nam": "2010",
+      "den_nam": "2014",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Tiến sĩ"
+    }
+  ],
+  
+  "ly_luan_chinh_tri": [
+    {
+      "ten_chuong_trinh": "Cao cấp Lý luận chính trị",
+      "co_so_dao_tao": "Học viện Chính trị Quốc gia Hồ Chí Minh",
+      "nam_tot_nghiep": "2008"
+    }
+  ],
+  
+  "quan_ly_nha_nuoc": [
+    {
+      "ten_chuong_trinh": "Chương trình bồi dưỡng cán bộ quản lý cấp Vụ",
+      "co_so_dao_tao": "Học viện Hành chính Quốc gia",
+      "nam_tot_nghiep": "2015"
+    },
+    {
+      "ten_chuong_trinh": "Chương trình bồi dưỡng lãnh đạo, quản lý cấp Bộ",
+      "co_so_dao_tao": "Học viện Hành chính Quốc gia",
+      "nam_tot_nghiep": "2020"
+    }
+  ],
+  
+  "ngoai_ngu": [
+    {
+      "ten_ngoai_ngu": "Tiếng Anh",
+      "trinh_do": "C2",
+      "chung_chi": "IELTS 8.5"
+    },
+    {
+      "ten_ngoai_ngu": "Tiếng Pháp",
+      "trinh_do": "B2",
+      "chung_chi": "DELF B2"
+    },
+    {
+      "ten_ngoai_ngu": "Tiếng Trung",
+      "trinh_do": "B1",
+      "chung_chi": "HSK 4"
+    }
+  ],
+  
+  "tin_hoc": [
+    {
+      "trinh_do": "Chứng chỉ Quản trị mạng",
+      "chung_chi": "CompTIA Network+"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "08/1994 - 12/1998",
+      "chuc_danh": "Chuyên viên",
+      "co_quan": "Vụ Tổ chức cán bộ, Bộ Nội vụ"
+    },
+    {
+      "thoi_gian": "01/1999 - 12/2004",
+      "chuc_danh": "Chuyên viên chính",
+      "co_quan": "Vụ Tổ chức cán bộ, Bộ Nội vụ"
+    },
+    {
+      "thoi_gian": "01/2005 - 06/2010",
+      "chuc_danh": "Phó Chánh Văn phòng",
+      "co_quan": "Văn phòng Bộ Nội vụ"
+    },
+    {
+      "thoi_gian": "07/2010 - 12/2015",
+      "chuc_danh": "Chánh Văn phòng",
+      "co_quan": "Văn phòng Bộ Nội vụ"
+    },
+    {
+      "thoi_gian": "01/2016 - 06/2020",
+      "chuc_danh": "Phó Vụ trưởng",
+      "co_quan": "Vụ Tổ chức cán bộ, Bộ Nội vụ"
+    },
+    {
+      "thoi_gian": "07/2020 - nay",
+      "chuc_danh": "Vụ trưởng",
+      "co_quan": "Vụ Tổ chức cán bộ, Bộ Nội vụ"
+    }
+  ],
+  
+  "khen_thuong": [
+    {
+      "nam": "2005",
+      "hinh_thuc": "Bằng khen",
+      "ly_do": "Hoàn thành xuất sắc nhiệm vụ 5 năm (2000-2005)",
+      "co_quan": "Bộ trưởng Bộ Nội vụ"
+    },
+    {
+      "nam": "2010",
+      "hinh_thuc": "Huân chương Lao động hạng Ba",
+      "ly_do": "Có thành tích xuất sắc trong công tác 15 năm",
+      "co_quan": "Chủ tịch nước"
+    },
+    {
+      "nam": "2015",
+      "hinh_thuc": "Huân chương Lao động hạng Nhì",
+      "ly_do": "Có thành tích xuất sắc trong công tác 20 năm",
+      "co_quan": "Chủ tịch nước"
+    },
+    {
+      "nam": "2018",
+      "hinh_thuc": "Chiến sĩ thi đua toàn quốc",
+      "ly_do": "Thành tích xuất sắc xuân sắc toàn diện",
+      "co_quan": "Thủ tướng Chính phủ"
+    },
+    {
+      "nam": "2022",
+      "hinh_thuc": "Huân chương Lao động hạng Nhất",
+      "ly_do": "Có thành tích đặc biệt xuất sắc trong công tác xây dựng Đảng",
+      "co_quan": "Chủ tịch nước"
+    }
+  ],
+  
+  "ky_luat": [],
+  
+  "gia_dinh": [
+    {
+      "quan_he": "Cha",
+      "ho_ten": "Phạm Văn An",
+      "nam_sinh": "1945",
+      "que_quan": "Sóc Sơn, Hà Nội",
+      "nghe_nghiep": "Cán bộ Bộ Quốc phòng nghỉ hưu",
+      "cho_hien_nay": "Đã qua đời năm 2018"
+    },
+    {
+      "quan_he": "Mẹ",
+      "ho_ten": "Nguyễn Thị Bích",
+      "nam_sinh": "1948",
+      "que_quan": "Ba Đình, Hà Nội",
+      "nghe_nghiep": "Giáo viên nghỉ hưu",
+      "cho_hien_nay": "Nghỉ hưu, ở cùng con trai"
+    },
+    {
+      "quan_he": "Vợ",
+      "ho_ten": "Hoàng Thị Diệp",
+      "nam_sinh": "1975",
+      "que_quan": "Quận Đống Đa, Hà Nội",
+      "nghe_nghiep": "Phó Giáo sư, Tiến sĩ - Đại học Quốc gia Hà Nội",
+      "cho_hien_nay": "Phó Trưởng Khoa Ngôn ngữ và Văn hóa các nước nói tiếng Anh"
+    },
+    {
+      "quan_he": "Con trai",
+      "ho_ten": "Phạm Minh Đức",
+      "nam_sinh": "2000",
+      "que_quan": "Hà Nội",
+      "nghe_nghiep": "Kỹ sư",
+      "cho_hien_nay": "Làm việc tại Viettel, đã lập gia đình"
+    },
+    {
+      "quan_he": "Con gái",
+      "ho_ten": "Phạm Thu Hà",
+      "nam_sinh": "2003",
+      "que_quan": "Hà Nội",
+      "nghe_nghiep": "Sinh viên",
+      "cho_hien_nay": "Sinh viên năm 3, Học viện Ngoại giao"
+    },
+    {
+      "quan_he": "Anh trai",
+      "ho_ten": "Phạm Minh Giang",
+      "nam_sinh": "1970",
+      "que_quan": "Sóc Sơn, Hà Nội",
+      "nghe_nghiep": "Trưởng phòng Sở Công Thương Hà Nội",
+      "cho_hien_nay": "Đang công tác tại Sở Công Thương TP. Hà Nội"
+    }
+  ],
+  
+  "tinh_hinh_kinh_te": {
+    "luong_thang": "35.000.000 VNĐ",
+    "phu_cap": "Phụ cấp chức vụ Vụ trưởng: 6.500.000 VNĐ/tháng",
+    "thu_nhap_khac": "Thu nhập từ giảng dạy và nghiên cứu khoa học: ~120.000.000 VNĐ/năm",
+    "nha_o": "Sở hữu villa 220m² tại khu đô thị Ciputra, Tây Hồ; Căn hộ 120m² tại Royal City (cho thuê)",
+    "dat_o": "Có 150m² đất thổ cư tại Sóc Sơn (nhà vườn gia đình)",
+    "dat_san_xuat": "Có 2.000m² đất nông nghiệp tại Sóc Sơn (cho cha mẹ canh tác)"
+  },
+  
+  "danh_gia_to_chuc": {
+    "nhan_xet": "Đồng chí có bản lĩnh chính trị vững vàng, có tư tưởng lý luận sâu sắc, tầm nhìn chiến lược. Có năng lực lãnh đạo, quản lý xuất sắc, dám nghĩ dám làm, năng động sáng tạo. Luôn hoàn thành xuất sắc mọi nhiệm vụ được giao. Đoàn kết, gương mẫu, có uy tín cao trong tập thể và quần chúng. Là cán bộ có triển vọng phát triển.",
+    "phan_loai": "Hoàn thành xuất sắc nhiệm vụ",
+    "ngay_danh_gia": "25/12/2023",
+    "nguoi_danh_gia": "Bộ trưởng Bộ Nội vụ"
+  }
+}

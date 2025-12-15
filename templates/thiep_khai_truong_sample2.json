@@ -1,0 +1,24 @@
+{
+  "guest": {
+    "name": "Bà Trần Thị Mai",
+    "title": "Phó Giám Đốc Sở Công Thương Hà Nội"
+  },
+  
+  "business": {
+    "name": "NHÀ HÀNG HẢI SẢN BIỂN ĐÔNG",
+    "slogan": "Tươi ngon - Phong phú - Đẳng cấp 5 sao"
+  },
+  
+  "venue": {
+    "address": "Tầng 3, TTTM Vincom Center, 191 Bà Triệu, Hai Bà Trưng, Hà Nội"
+  },
+  
+  "event": {
+    "datetime": "18:00, Chủ Nhật, ngày 08/12/2024"
+  },
+  
+  "contact": {
+    "phone": "024 3999 8888",
+    "email": "info@biendongrestarant.vn"
+  }
+}

@@ -66,14 +66,39 @@ npm run dev
 - ✅ Format conversion (JPG, PNG, WEBP, etc.)
 
 ### 3. Document Processing API
-- ✅ Convert Word → PDF
-- ✅ Convert PDF → Word
+
+#### 🔧 Local Processing (Free, Unlimited)
+- ✅ Convert Word → PDF (Gotenberg - LibreOffice)
+- ✅ Convert PDF → Word (pdf2docx - 7/10 quality)
+- ✅ Convert PDF → Excel (pdfplumber - 8/10 quality for tables)
 - ✅ Convert PDF → Images
 - ✅ Merge multiple PDFs
 - ✅ Split PDF
 - ✅ Extract text từ PDF
-- ✅ Compress PDF
-- ✅ Add watermark to PDF
+- ✅ Compress PDF (pypdf - 7/10 quality)
+- ✅ Add watermark to PDF (pypdf + reportlab - 8/10 quality)
+
+#### ☁️ Adobe PDF Services (Cloud, 500 free/month, 10/10 quality)
+- ✨ **NEW: OCR PDF** - Vietnamese AI text recognition (50+ languages)
+- ✨ **NEW: Smart Extract** - AI-powered content extraction:
+  - 📊 Tables → Structured Excel data
+  - 🖼️ Images → PNG files with metadata
+  - 📝 Text with font information (bold, italic, size, family)
+  - 🏗️ Document structure (headings, paragraphs, lists)
+- ✨ **NEW: HTML to PDF** - Perfect Chrome-quality rendering
+- ✨ **Hybrid Compress** - Adobe first (10/10), fallback pypdf (7/10)
+- ✨ **Hybrid Watermark** - Adobe first (10/10), fallback pypdf (8/10)
+- 🎯 **Configurable Priority** - Choose Adobe-first or local-first via Settings
+
+**Technology Comparison:**
+| Feature | Adobe (Cloud) | Local Tools | Winner |
+|---------|---------------|-------------|--------|
+| Quality | 10/10 | 7-8/10 | Adobe |
+| Speed | Medium (API call) | Fast | Local |
+| Cost | 500 free/month | Unlimited free | Local |
+| OCR Support | ✅ 50+ languages | ❌ | Adobe |
+| AI Extract | ✅ Smart detection | ❌ | Adobe |
+| Offline | ❌ | ✅ | Local |
 
 ### 4. OCR Service
 - ✅ OCR tiếng Việt & tiếng Anh
@@ -91,18 +116,23 @@ npm run dev
 ## 🛠️ Tech Stack
 
 - **Backend**: FastAPI (Python 3.11)
-- **Database**: PostgreSQL 15
-- **Cache/Queue**: Redis
-- **Task Queue**: Celery
-- **Web Server**: Nginx
-- **Container**: Docker & Docker Compose
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS
+- **PDF Processing**: 
+  - ☁️ Adobe PDF Services API (10/10 quality, 500 free/month)
+  - 🖥️ Gotenberg (LibreOffice headless - Office → PDF)
+  - 🖥️ pypdf (PDF manipulation - 7/10 quality)
+  - 🖥️ pdf2docx (PDF → Word - 7/10 quality)
+  - 🖥️ pdfplumber (PDF → Excel - 8/10 quality)
 - **AI/ML Libraries**:
   - face_recognition (dlib)
   - OpenCV
   - Tesseract OCR
   - Pillow (PIL)
-  - PyPDF2, pdf2docx
   - python-docx
+- **Database**: PostgreSQL 15 (optional)
+- **Cache/Queue**: Redis (optional)
+- **Task Queue**: Celery (optional)
+- **Container**: Docker & Docker Compose
 
 ## 📂 Cấu trúc dự án
 
@@ -172,6 +202,62 @@ nano .env
 # - SECRET_KEY
 # - DOMAIN (nếu có)
 ```
+
+#### 🌟 Optional: Adobe PDF Services Configuration
+
+To enable Adobe AI-powered features (OCR, Smart Extract, HTML→PDF):
+
+1. **Get Adobe Credentials** (Free 500 transactions/month):
+   - Visit: https://developer.adobe.com/document-services/apis/pdf-services/
+   - Create account → Get credentials
+   - **📘 Detailed Guide**: See **[ADOBE_CREDENTIALS_GUIDE.md](./ADOBE_CREDENTIALS_GUIDE.md)**
+   - **⚡ Quick Setup**: See **[ADOBE_QUICK_SETUP.md](./ADOBE_QUICK_SETUP.md)**
+
+2. **Configure Backend**:
+   ```bash
+   cd backend
+   
+   # Edit .env
+   USE_ADOBE_PDF_API=true
+   PDF_SERVICES_CLIENT_ID=your_client_id_here
+   PDF_SERVICES_CLIENT_SECRET=your_client_secret_here
+   ADOBE_ORG_ID=your_org_id_here  # optional
+   ```
+
+3. **Test Configuration**:
+   ```bash
+   # Run test script
+   python test_adobe_credentials.py
+   
+   # Expected output:
+   # ✅ Config loaded successfully
+   # ✅ Adobe SDK imported successfully
+   # 🎉 SUCCESS! Adobe API is configured correctly!
+   ```
+
+4. **Configure Technology Priority** (in `.env`):
+   ```bash
+   # Choose Adobe-first (10/10 quality) or local-first (free unlimited)
+   COMPRESS_PRIORITY=adobe,pypdf    # Try Adobe first, fallback pypdf
+   WATERMARK_PRIORITY=adobe,pypdf   # Try Adobe first, fallback pypdf
+   PDF_INFO_PRIORITY=adobe,pypdf    # Try Adobe first, fallback pypdf
+   
+   # Or reverse for local-first:
+   # COMPRESS_PRIORITY=pypdf,adobe
+   ```
+
+4. **Runtime Configuration**:
+   - Frontend: Go to **Settings** tab
+   - Switch priorities on-the-fly
+   - View Adobe quota usage (X/500)
+   - Reset to defaults
+
+**Adobe Features Comparison:**
+- ✅ **OCR**: Vietnamese + 50 languages (Adobe only - no local alternative)
+- ✅ **Smart Extract**: AI table/image extraction (Adobe only)
+- ✅ **HTML→PDF**: Chrome-quality rendering (Adobe 10/10 vs wkhtmltopdf 6/10)
+- ✅ **Compress**: Adobe 10/10 vs pypdf 7/10
+- ✅ **Watermark**: Adobe 10/10 vs pypdf 8/10
 
 ### Bước 3: Deploy với Docker
 

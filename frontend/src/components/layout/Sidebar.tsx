@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X, FileText, FileEdit } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 
@@ -9,6 +9,8 @@ const menuItems = [
   { icon: Shield, label: 'Vai trò', path: '/roles' },
   { icon: Activity, label: 'Nhật ký', path: '/logs' },
   { icon: Wrench, label: 'Công cụ', path: '/tools' },
+  { icon: FileText, label: 'Adobe PDF', path: '/adobe-pdf' },
+  { icon: FileEdit, label: 'Mẫu 2C', path: '/mau-2c', badge: '🆕 NEW' },
 ];
 
 interface SidebarProps {
@@ -74,6 +76,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               >
                 <Icon className="h-5 w-5" />
                 <span className="font-medium">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-semibold">
+                    {item.badge}
+                  </span>
+                )}
               </div>
             </Link>
           );

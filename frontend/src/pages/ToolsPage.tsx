@@ -1,19 +1,68 @@
 import { useState } from 'react';
-import { Upload, FileText, Image, FileType, Loader2 } from 'lucide-react';
+import { Upload, FileText, Image, FileType, Loader2, Settings, Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
+import { TechnologyBadge, ConversionProgress, ConversionResult, type TechnologyType } from '../components/TechnologyBadge';
+import SettingsPanel from '../components/SettingsPanel';
+import { GeminiModelSelector } from '../components/GeminiModelSelector';
 
+// API Base URL with /v1 prefix - Updated 2025-11-24
 const API_BASE = API_BASE_URL;
 
+// Debug: Log API base URL on component load
+console.log('🔧 ToolsPage API_BASE:', API_BASE);
+console.log('🔧 Expected: /api/v1');
+
+// Operations database for search and display - NEW
+const ALL_OPERATIONS = [
+  // Popular operations
+  { id: 'word-to-pdf', name: 'Word to PDF', icon: '📝', category: 'convert', keywords: ['word', 'docx', 'pdf', 'convert'], tech: 'gotenberg', popular: true, color: 'blue' },
+  { id: 'pdf-to-word', name: 'PDF to Word', icon: '📄', category: 'convert', keywords: ['pdf', 'word', 'docx', 'convert', 'editable'], tech: 'gemini', popular: true, color: 'blue' },
+  { id: 'merge-pdf', name: 'Merge PDFs', icon: '🔗', category: 'edit', keywords: ['merge', 'combine', 'join', 'pdf'], tech: 'pypdf', popular: true, color: 'green' },
+  { id: 'compress-pdf', name: 'Compress PDF', icon: '🗜️', category: 'edit', keywords: ['compress', 'reduce', 'size', 'optimize', 'pdf'], tech: 'adobe', popular: true, color: 'green' },
+  
+  // Convert operations
+  { id: 'excel-to-pdf', name: 'Excel to PDF', icon: '📊', category: 'convert', keywords: ['excel', 'xlsx', 'pdf', 'convert'], tech: 'gotenberg', color: 'blue' },
+  { id: 'image-to-pdf', name: 'Image to PDF', icon: '🖼️', category: 'convert', keywords: ['image', 'photo', 'jpg', 'png', 'pdf', 'convert'], tech: 'pypdf', color: 'blue' },
+  { id: 'html-to-pdf', name: 'HTML to PDF', icon: '🌐', category: 'convert', keywords: ['html', 'web', 'pdf', 'convert'], tech: 'reportlab', color: 'blue' },
+  
+  // Edit operations
+  { id: 'split-pdf', name: 'Split PDF', icon: '✂️', category: 'edit', keywords: ['split', 'separate', 'extract', 'pages', 'pdf'], tech: 'pypdf', color: 'green' },
+  { id: 'rotate-pdf', name: 'Rotate PDF', icon: '🔄', category: 'edit', keywords: ['rotate', 'turn', 'orientation', 'pdf'], tech: 'pypdf', color: 'green' },
+  { id: 'watermark-pdf', name: 'Add Watermark', icon: '🏷️', category: 'edit', keywords: ['watermark', 'stamp', 'label', 'pdf'], tech: 'reportlab', color: 'green' },
+  { id: 'protect-pdf', name: 'Password Protect', icon: '🔒', category: 'edit', keywords: ['password', 'protect', 'secure', 'lock', 'pdf'], tech: 'pypdf', color: 'green' },
+  { id: 'pdf-to-images', name: 'PDF to Images', icon: '🖼️', category: 'convert', keywords: ['pdf', 'image', 'jpg', 'png', 'extract'], tech: 'pypdfium2', color: 'blue' },
+  { id: 'page-numbers', name: 'Add Page Numbers', icon: '🔢', category: 'edit', keywords: ['page', 'numbers', 'numbering', 'pdf'], tech: 'reportlab', color: 'green' },
+  
+  // Batch operations
+  { id: 'batch-word-to-pdf', name: 'Batch Word→PDF', icon: '📚', category: 'batch', keywords: ['batch', 'multiple', 'word', 'pdf', 'bulk'], tech: 'gotenberg', color: 'purple' },
+  { id: 'batch-compress', name: 'Batch Compress', icon: '📦', category: 'batch', keywords: ['batch', 'compress', 'multiple', 'bulk', 'pdf'], tech: 'adobe', color: 'purple' },
+  { id: 'merge-word-to-pdf', name: 'Merge Word→PDF', icon: '🔗', category: 'batch', keywords: ['merge', 'word', 'pdf', 'combine', 'join'], tech: 'gotenberg', color: 'purple' },
+  
+  // OCR operations
+  { id: 'ocr-extract', name: 'Extract Text (OCR)', icon: '🔍', category: 'ocr', keywords: ['ocr', 'text', 'extract', 'scan', 'recognize'], tech: 'tesseract', color: 'orange' },
+  { id: 'ocr-vietnamese', name: 'OCR Vietnamese', icon: '🇻🇳', category: 'ocr', keywords: ['ocr', 'vietnamese', 'tieng viet', 'text', 'extract'], tech: 'tesseract', color: 'orange' },
+  { id: 'pdf-extract-text', name: 'Extract PDF Text', icon: '📝', category: 'ocr', keywords: ['pdf', 'text', 'extract', 'content'], tech: 'pypdf', color: 'orange' },
+];
+
 export default function ToolsPage() {
-  const [activeTab, setActiveTab] = useState<'documents' | 'images' | 'ocr'>('documents');
+  // Search functionality - NEW
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showSearchResults, setShowSearchResults] = useState<boolean>(false);
+  
+  const [activeTab, setActiveTab] = useState<'documents' | 'images' | 'ocr' | 'settings'>('documents');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [processingTime, setProcessingTime] = useState<number>(0);
+  
+  // Technology tracking
+  const [currentTechnology, setCurrentTechnology] = useState<TechnologyType | null>(null);
   
   // Progress tracking - IMPROVED: Track specific operation
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -47,6 +96,21 @@ export default function ToolsPage() {
   const [imageFormat, setImageFormat] = useState<string>('png'); // For to-images
   const [pageNumberFormat, setPageNumberFormat] = useState<string>('Page {page}');
 
+  // NEW: Adobe-only features state
+  const [showOcrModal, setShowOcrModal] = useState<boolean>(false);
+  const [ocrLanguage, setOcrLanguage] = useState<string>('vi-VN');
+  const [enableOcr, setEnableOcr] = useState<boolean>(false);
+  const [autoDetectScanned, setAutoDetectScanned] = useState<boolean>(true);
+  const [showPdfToWordModal, setShowPdfToWordModal] = useState<boolean>(false); // NEW: For PDF→Word OCR options
+  const [useGemini, setUseGemini] = useState<boolean>(true); // NEW: Use Gemini API by default (best for Vietnamese)
+  const [geminiModel, setGeminiModel] = useState<string>(''); // NEW: Selected Gemini model (empty = use default)
+  const [showExtractModal, setShowExtractModal] = useState<boolean>(false);
+  const [extractType, setExtractType] = useState<string>('all');
+  const [showHtmlToPdfModal, setShowHtmlToPdfModal] = useState<boolean>(false);
+  const [htmlContent, setHtmlContent] = useState<string>('');
+  const [htmlPageSize, setHtmlPageSize] = useState<string>('A4');
+  const [htmlOrientation, setHtmlOrientation] = useState<string>('portrait');
+
   // Helper: Get file extension
   const getFileExtension = (filename: string): string => {
     return filename.split('.').pop()?.toLowerCase() || '';
@@ -74,6 +138,99 @@ export default function ToolsPage() {
   // Helper: Check if ANY operation is running
   const isAnyOperationLoading = (): boolean => {
     return loadingOperation !== null;
+  };
+
+  // Helper: Check if file is PDF
+  const isPdfSelected = (): boolean => {
+    return selectedFile !== null && getFileType(selectedFile) === 'pdf';
+  };
+
+  // Helper: Check if file is uploaded
+  const isFileSelected = (): boolean => {
+    return selectedFile !== null;
+  };
+
+  // NEW: Search operations filter
+  const filterOperations = (query: string) => {
+    if (!query.trim()) return [];
+    
+    const searchLower = query.toLowerCase();
+    return ALL_OPERATIONS.filter(op => 
+      op.name.toLowerCase().includes(searchLower) ||
+      op.keywords.some(keyword => keyword.includes(searchLower)) ||
+      op.category.includes(searchLower)
+    ).slice(0, 8); // Limit to 8 results
+  };
+
+  // NEW: Get popular operations
+  const getPopularOperations = () => {
+    return ALL_OPERATIONS.filter(op => op.popular);
+  };
+
+  // NEW: Handle search input
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    setShowSearchResults(query.trim().length > 0);
+  };
+
+  // NEW: Handle operation selection from search
+  const handleOperationSelect = (operationId: string) => {
+    setSearchQuery('');
+    setShowSearchResults(false);
+    toast.success(`Selected: ${operationId}`, { icon: '🎯' });
+    // TODO: Trigger the actual operation
+  };
+
+  // Helper: Validate file before processing
+  const validateFile = (file: File | null, requiredType?: 'pdf' | 'word' | 'excel' | 'image'): {
+    valid: boolean;
+    error?: string;
+  } => {
+    if (!file) {
+      return { valid: false, error: 'Vui lòng upload file trước' };
+    }
+
+    // Check file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      return {
+        valid: false,
+        error: `File quá lớn (${(file.size / 1024 / 1024).toFixed(2)}MB). Tối đa 50MB.`
+      };
+    }
+
+    // Check file type if specified
+    if (requiredType) {
+      const fileType = getFileType(file);
+      if (fileType !== requiredType) {
+        return {
+          valid: false,
+          error: `File không đúng định dạng. Cần ${requiredType.toUpperCase()}, bạn upload ${fileType?.toUpperCase() || 'UNKNOWN'}.`
+        };
+      }
+    }
+
+    return { valid: true };
+  };
+
+  // Helper: Get button disabled state with reason
+  const getButtonState = (requiredFileType?: 'pdf' | 'word' | 'excel' | 'image'): {
+    disabled: boolean;
+    reason: string | null;
+  } => {
+    // Operation đang chạy
+    if (isAnyOperationLoading()) {
+      return { disabled: true, reason: 'Đang xử lý thao tác khác...' };
+    }
+
+    // Check file requirements
+    const validation = validateFile(selectedFile, requiredFileType);
+    if (!validation.valid) {
+      return { disabled: true, reason: validation.error || null };
+    }
+
+    return { disabled: false, reason: null };
   };
 
   // Cancel current operation
@@ -180,108 +337,208 @@ export default function ToolsPage() {
     }
   };
 
-  // Document: Word to PDF
-  const handleWordToPdf = async () => {
-    if (!selectedFile) return;
-    
+  /**
+   * 🚀 UNIFIED CONVERSION HANDLER - Reuse logic for ALL operations
+   * This replaces 500+ lines of duplicate code across different handlers
+   */
+  const handleConversion = async (options: {
+    operation: string;
+    endpoint: string;
+    file: File;
+    additionalData?: Record<string, any>;
+    outputFilename?: string;
+    technology: TechnologyType;
+    validateFileType?: 'pdf' | 'word' | 'excel' | 'image';
+    responseType?: 'blob' | 'json';
+  }) => {
+    const {
+      operation,
+      endpoint,
+      file,
+      additionalData,
+      outputFilename,
+      technology,
+      validateFileType,
+      responseType = 'blob'
+    } = options;
+
     // Check if another operation is running
     if (isAnyOperationLoading()) {
-      toast('⚠️ Một thao tác khác đang chạy. Vui lòng đợi hoặc hủy thao tác đó!', { icon: '⚠️' });
+      toast.error('⚠️ Một thao tác khác đang chạy. Vui lòng đợi!');
       return;
     }
 
+    // Validate file
+    const validation = validateFile(file, validateFileType);
+    if (!validation.valid) {
+      toast.error(validation.error || 'File không hợp lệ');
+      return;
+    }
+
+    // Initialize
     const controller = new AbortController();
     setAbortController(controller);
     setLoading(true);
-    setLoadingOperation('word-to-pdf'); // Set specific operation
+    setLoadingOperation(operation.toLowerCase().replace(/\s+/g, '-'));
     setUploadProgress(0);
     setProcessingProgress(0);
-    setCurrentOperation('Word → PDF');
+    setCurrentOperation(operation);
+    setCurrentTechnology(technology);
+
     const startTime = Date.now();
-    
+
+    // Upload progress simulation
     const uploadInterval = setInterval(() => {
       setUploadProgress(prev => Math.min(prev + 10, 100));
     }, 100);
-    
-    const formData = new FormData();
-    formData.append('file', selectedFile);
 
     try {
+      // Time tracking interval
       const timeInterval = setInterval(() => {
         setProcessingTime(Date.now() - startTime);
       }, 100);
-      
-      const response = await axios.post(`${API_BASE}/documents/convert/word-to-pdf`, formData, {
-        responseType: 'blob',
-        signal: controller.signal, // Add abort signal
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(percentCompleted);
-          }
-        },
-      });
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Add additional data if provided
+      if (additionalData) {
+        Object.entries(additionalData).forEach(([key, value]) => {
+          formData.append(key, String(value));
+        });
+      }
+
+      // Make API request
+      const response = await axios.post(
+        `${API_BASE}${endpoint}`,
+        formData,
+        {
+          responseType: responseType,
+          signal: controller.signal,
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percentCompleted);
+            }
+          },
+        }
+      );
 
       clearInterval(uploadInterval);
       clearInterval(timeInterval);
-      
+
       setUploadProgress(100);
+
+      // Processing progress animation
       for (let i = 0; i <= 100; i += 20) {
         setProcessingProgress(i);
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 
       const processingTimeMs = Date.now() - startTime;
-      setProcessingTime(processingTimeMs);
 
-      const pdfSize = response.data.size;
-      const originalSize = selectedFile.size;
+      // Handle different response types
+      if (responseType === 'json') {
+        // JSON response (for extract text, pdf info, etc.)
+        const techEngine = response.data.technology || technology;
+        const techQuality = response.data.quality || '10/10';
 
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      const outputFilename = selectedFile.name.replace(/\.\w+$/, '.pdf');
-      link.setAttribute('download', outputFilename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+        setResult({
+          success: true,
+          operation,
+          technology: techEngine,
+          quality: techQuality,
+          processingTime: processingTimeMs,
+          data: response.data,
+        });
 
-      toast.success('✅ Converted successfully!');
-      setResult({
-        type: 'download',
-        action: 'Word → PDF Conversion',
-        originalFile: selectedFile.name,
-        originalSize: originalSize,
-        outputFile: outputFilename,
-        outputSize: pdfSize,
-        processingTime: processingTimeMs,
-        compressionRatio: ((1 - pdfSize / originalSize) * 100).toFixed(1),
-        downloadUrl: url
-      });
+        toast.success(`✅ ${operation} thành công!`);
+      } else {
+        // Blob response (for file downloads)
+        const techEngine = response.headers['x-technology-engine'] || technology;
+        const techQuality = response.headers['x-technology-quality'] || '10/10';
+        const outputSize = response.data.size;
+
+        // Download file
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = outputFilename || `output_${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        setResult({
+          success: true,
+          operation,
+          technology: techEngine,
+          quality: techQuality,
+          processingTime: processingTimeMs,
+          originalSize: file.size,
+          outputSize: outputSize,
+        });
+
+        toast.success(`✅ ${operation} thành công! File đã được tải về.`);
+      }
+
     } catch (error: any) {
       clearInterval(uploadInterval);
-      
-      // Check if operation was aborted
+
       if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
-        toast('❌ Đã hủy chuyển đổi Word → PDF', { icon: 'ℹ️' });
-        return;
+        toast('❌ Đã hủy thao tác', { icon: 'ℹ️' });
+      } else {
+        // Better error messages
+        let errorMsg = 'Lỗi không xác định';
+        
+        if (error.code === 'ECONNABORTED') {
+          errorMsg = 'Timeout! File quá lớn hoặc mạng chậm.';
+        } else if (error.code === 'ERR_NETWORK') {
+          errorMsg = 'Lỗi kết nối. Vui lòng kiểm tra mạng.';
+        } else if (error.response?.status === 413) {
+          errorMsg = 'File quá lớn! Server không chấp nhận.';
+        } else if (error.response?.status === 415) {
+          errorMsg = 'Định dạng file không được hỗ trợ.';
+        } else if (error.response?.status === 500) {
+          errorMsg = error.response?.data?.detail || 'Lỗi server. Vui lòng thử lại.';
+        } else {
+          errorMsg = error.response?.data?.detail || error.message || errorMsg;
+        }
+
+        console.error('Conversion error:', error);
+        toast.error(`❌ ${errorMsg}`);
+        
+        setResult({
+          success: false,
+          operation,
+          error: errorMsg,
+        });
       }
-      
-      const errorMsg = error.response?.data?.detail || 'Conversion failed';
-      toast.error(errorMsg);
-      setResult({
-        type: 'error',
-        message: errorMsg,
-        originalFile: selectedFile.name
-      });
     } finally {
+      setLoadingOperation(null);
       setLoading(false);
-      setLoadingOperation(null); // Clear operation
-      setAbortController(null); // Clear abort controller
+      setAbortController(null);
       setUploadProgress(0);
       setProcessingProgress(0);
-      setCurrentOperation('');
     }
+  };
+
+  // Document: Word to PDF
+  const handleWordToPdf = async () => {
+    if (!selectedFile) {
+      toast.error('❌ Vui lòng upload file Word trước!');
+      return;
+    }
+
+    await handleConversion({
+      operation: 'Word → PDF',
+      endpoint: '/documents/convert/word-to-pdf',
+      file: selectedFile,
+      outputFilename: selectedFile.name.replace(/\.(docx?|doc)$/i, '.pdf'),
+      technology: 'gotenberg',
+      validateFileType: 'word',
+    });
   };
 
   // Document: PDF to Word
@@ -292,6 +549,7 @@ export default function ToolsPage() {
     setUploadProgress(0);
     setProcessingProgress(0);
     setCurrentOperation('PDF → Word');
+    setCurrentTechnology(useGemini ? 'gemini' : 'adobe'); // Set technology being used
     const startTime = Date.now();
     
     const uploadInterval = setInterval(() => {
@@ -300,6 +558,13 @@ export default function ToolsPage() {
     
     const formData = new FormData();
     formData.append('file', selectedFile);
+    formData.append('enable_ocr', String(enableOcr));
+    formData.append('ocr_language', ocrLanguage);
+    formData.append('auto_detect_scanned', String(autoDetectScanned));
+    formData.append('use_gemini', String(useGemini)); // NEW: Gemini API support
+    if (useGemini && geminiModel) {
+      formData.append('gemini_model', geminiModel); // NEW: Model selection
+    }
 
     try {
       const timeInterval = setInterval(() => {
@@ -329,6 +594,16 @@ export default function ToolsPage() {
       const docxSize = response.data.size;
       const originalSize = selectedFile.size;
 
+      // Extract technology metadata from response headers
+      const techEngine = response.headers['x-technology-engine'] || 'pdf2docx';
+      const techName = response.headers['x-technology-name'] || 'pdf2docx';
+      const techModel = response.headers['x-technology-model'] || '';
+      const techQuality = response.headers['x-technology-quality'] || '7/10';
+      const techSpeed = response.headers['x-technology-speed'] || '';
+      const techQuota = response.headers['x-adobe-quota-remaining'] || null;
+      const usedOcr = response.headers['x-technology-ocr'] === 'true';
+      const ocrLang = response.headers['x-technology-ocr-language'] || 'none';
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -338,17 +613,26 @@ export default function ToolsPage() {
       link.click();
       link.remove();
 
-      toast.success('✅ Converted to Word successfully!');
+      const successMsg = usedOcr 
+        ? `✅ Converted to Word with OCR (${ocrLang})!`
+        : techModel
+        ? `✅ Converted with ${techName} (${techModel})!`
+        : '✅ Converted to Word successfully!';
+      toast.success(successMsg);
+      
       setResult({
         type: 'download',
-        action: 'PDF → Word Conversion',
+        action: 'PDF → Word Conversion' + (usedOcr ? ` (OCR: ${ocrLang})` : ''),
         originalFile: selectedFile.name,
         originalSize: originalSize,
         outputFile: outputFilename,
         outputSize: docxSize,
         processingTime: processingTimeMs,
         compressionRatio: ((1 - docxSize / originalSize) * 100).toFixed(1),
-        downloadUrl: url
+        downloadUrl: url,
+        technology: techEngine,
+        quality: techQuality,
+        quotaRemaining: techQuota
       });
     } catch (error: any) {
       clearInterval(uploadInterval);
@@ -364,6 +648,9 @@ export default function ToolsPage() {
       setUploadProgress(0);
       setProcessingProgress(0);
       setCurrentOperation('');
+      setCurrentTechnology(null);
+      // Reset OCR modal
+      setShowOcrModal(false);
     }
   };
 
@@ -375,6 +662,7 @@ export default function ToolsPage() {
     setUploadProgress(0);
     setProcessingProgress(0);
     setCurrentOperation('PDF → Excel');
+    setCurrentTechnology('pdfplumber'); // Set technology
     const startTime = Date.now();
     
     // Simulate upload progress
@@ -421,6 +709,10 @@ export default function ToolsPage() {
       const xlsxSize = response.data.size;
       const originalSize = selectedFile.size;
 
+      // Extract technology metadata from response headers
+      const techEngine = response.headers['x-technology-engine'] || 'pdfplumber';
+      const techQuality = response.headers['x-technology-quality'] || '8/10';
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -440,7 +732,10 @@ export default function ToolsPage() {
         outputSize: xlsxSize,
         processingTime: processingTimeMs,
         compressionRatio: ((1 - xlsxSize / originalSize) * 100).toFixed(1),
-        downloadUrl: url
+        downloadUrl: url,
+        technology: techEngine,
+        quality: techQuality,
+        quotaRemaining: null
       });
     } catch (error: any) {
       clearInterval(uploadInterval);
@@ -456,6 +751,7 @@ export default function ToolsPage() {
       setUploadProgress(0);
       setProcessingProgress(0);
       setCurrentOperation('');
+      setCurrentTechnology(null);
     }
   };
 
@@ -1305,6 +1601,135 @@ export default function ToolsPage() {
     }
   };
 
+  // ==================== NEW: ADOBE-ONLY FEATURES ====================
+
+  // OCR PDF - Convert scanned PDF to searchable
+  const handleOcrPdf = async () => {
+    if (!selectedFile) return;
+
+    await handleConversion({
+      operation: `OCR PDF (${ocrLanguage})`,
+      endpoint: '/documents/pdf/ocr',
+      file: selectedFile,
+      additionalData: {
+        language: ocrLanguage,
+      },
+      outputFilename: selectedFile.name.replace('.pdf', '_ocr.pdf'),
+      technology: 'adobe',
+      validateFileType: 'pdf',
+    });
+
+    setShowOcrModal(false);
+  };
+
+  // Extract PDF Content - AI extraction
+  const handleExtractContent = async () => {
+    if (!selectedFile) return;
+
+    await handleConversion({
+      operation: `Extract PDF Content (${extractType})`,
+      endpoint: '/documents/pdf/extract-content',
+      file: selectedFile,
+      additionalData: {
+        extract_type: extractType,
+      },
+      technology: 'adobe',
+      validateFileType: 'pdf',
+      responseType: 'json',
+    });
+
+    setShowExtractModal(false);
+  };
+
+  // HTML to PDF - Perfect HTML rendering
+  const handleHtmlToPdf = async () => {
+    if (!htmlContent.trim()) {
+      toast.error('❌ Vui lòng nhập nội dung HTML');
+      return;
+    }
+
+    setLoading(true);
+    setUploadProgress(0);
+    setProcessingProgress(0);
+    setCurrentOperation('HTML → PDF');
+    setCurrentTechnology('adobe');
+    const startTime = Date.now();
+
+    try {
+      const formData = new FormData();
+      formData.append('html_content', htmlContent);
+      formData.append('page_size', htmlPageSize);
+      formData.append('orientation', htmlOrientation);
+
+      const response = await axios.post(
+        `${API_BASE}/documents/convert/html-to-pdf`,
+        formData,
+        {
+          responseType: 'blob',
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(percent);
+            }
+          },
+        }
+      );
+
+      setUploadProgress(100);
+      for (let i = 0; i <= 100; i += 20) {
+        setProcessingProgress(i);
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+
+      const processingTimeMs = Date.now() - startTime;
+      const pdfSize = response.data.size;
+
+      // Download PDF
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `html_${htmlPageSize}_${htmlOrientation}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('✅ HTML converted to PDF successfully!');
+      setResult({
+        type: 'download',
+        action: `HTML → PDF (${htmlPageSize} ${htmlOrientation})`,
+        originalFile: 'HTML Content',
+        originalSize: new Blob([htmlContent]).size,
+        outputFile: `html_${htmlPageSize}_${htmlOrientation}.pdf`,
+        outputSize: pdfSize,
+        processingTime: processingTimeMs,
+        compressionRatio: '0',
+        downloadUrl: url,
+        technology: 'adobe',
+        quality: '10/10',
+      });
+
+      setShowHtmlToPdfModal(false);
+      setHtmlContent(''); // Clear form
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.detail || 'HTML to PDF conversion failed';
+      toast.error(errorMsg);
+      setResult({
+        type: 'error',
+        message: errorMsg,
+        originalFile: 'HTML Content',
+      });
+    } finally {
+      setLoading(false);
+      setUploadProgress(0);
+      setProcessingProgress(0);
+      setCurrentOperation('');
+      setCurrentTechnology(null);
+    }
+  };
+
+  // ==================== END: ADOBE-ONLY FEATURES ====================
+
   // ==================== BATCH CONVERSION HANDLERS ====================
 
   // Batch: Word to PDF
@@ -1687,13 +2112,118 @@ export default function ToolsPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Hero Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Công Cụ Xử Lý File</h1>
-        <p className="text-muted-foreground mt-2">
-          Convert documents, process images, extract text from images
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          🛠️ File Processing Tools
+        </h1>
+        <p className="text-muted-foreground mt-2 text-lg">
+          Convert, edit, and process your files with AI-powered tools
         </p>
       </div>
+
+      {/* Search Bar - NEW */}
+      <div className="mb-6 relative">
+        <div className="relative">
+          <Search className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+          <Input
+            type="text"
+            placeholder='🔍 Search operations... (e.g., "word to pdf", "merge", "compress")'
+            className="pl-10 py-6 text-base shadow-sm"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={() => searchQuery && setShowSearchResults(true)}
+          />
+        </div>
+        
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchQuery && (
+          <Card className="absolute z-50 w-full mt-2 shadow-lg border-2 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-blue-900">
+                  🔍 Found {filterOperations(searchQuery).length} operations:
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowSearchResults(false);
+                  }}
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              {filterOperations(searchQuery).length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {filterOperations(searchQuery).map(op => (
+                    <Button
+                      key={op.id}
+                      variant="outline"
+                      className={`justify-start h-auto py-3 px-4 hover:border-${op.color}-500 hover:bg-${op.color}-50`}
+                      onClick={() => handleOperationSelect(op.id)}
+                    >
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-2xl">{op.icon}</span>
+                        <div className="text-left flex-1">
+                          <div className="font-medium text-sm">{op.name}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {op.category}
+                            </Badge>
+                            <TechnologyBadge tech={op.tech as any} size="small" />
+                          </div>
+                        </div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 text-center py-4">
+                  No operations found for "{searchQuery}"
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Popular Operations Section - NEW */}
+      <Card className="mb-6 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            ⭐ Popular Operations
+            <Badge variant="secondary" className="ml-2">Most Used</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {getPopularOperations().map(op => (
+              <Button
+                key={op.id}
+                variant="outline"
+                className="h-auto py-6 flex-col gap-3 bg-white hover:shadow-lg hover:scale-105 transition-all duration-200 border-2 hover:border-blue-500"
+                onClick={() => handleOperationSelect(op.id)}
+              >
+                <div className="text-4xl">{op.icon}</div>
+                <div className="font-semibold text-center">{op.name}</div>
+                <div className="flex flex-col items-center gap-1">
+                  <Badge variant="secondary" className="text-xs">
+                    {op.category}
+                  </Badge>
+                  <TechnologyBadge tech={op.tech as any} size="small" showQuality />
+                </div>
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-center text-gray-600 mt-4">
+            💡 Click any operation to get started quickly
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
@@ -1718,8 +2248,22 @@ export default function ToolsPage() {
           <FileType className="w-4 h-4 mr-2" />
           OCR
         </Button>
+        <Button
+          variant={activeTab === 'settings' ? 'default' : 'outline'}
+          onClick={() => setActiveTab('settings')}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Settings
+        </Button>
       </div>
 
+      {/* Settings Panel - Full Width */}
+      {activeTab === 'settings' && (
+        <SettingsPanel />
+      )}
+
+      {/* Regular Tools - 2 Column Grid */}
+      {activeTab !== 'settings' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upload Area */}
         <Card>
@@ -2162,48 +2706,166 @@ export default function ToolsPage() {
                 </Button>
               </div>
             ) : (
-              // Single file upload (original)
-              <div>
-                <div
-                  onDrop={handleDrop}
-                  onDragOver={(e) => e.preventDefault()}
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer"
-                  onClick={() => document.getElementById('fileInput')?.click()}
-                >
-                  <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-lg font-medium mb-2">
-                    {selectedFile ? selectedFile.name : 'Click or drag file here'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {activeTab === 'documents' && 'Hỗ trợ: Word (.docx), Excel (.xlsx), PowerPoint (.pptx), PDF'}
-                    {activeTab === 'images' && 'Supported: JPG, PNG, WebP, HEIC'}
-                    {activeTab === 'ocr' && 'Supported: JPG, PNG (images with text)'}
-                  </p>
-                  <input
-                    id="fileInput"
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    accept={
-                      activeTab === 'documents'
-                        ? '.docx,.doc,.pdf,.xlsx,.xls,.pptx,.ppt'
-                        : activeTab === 'images'
-                        ? 'image/*'
-                        : 'image/*'
-                    }
-                  />
-                </div>
-
-                {selectedFile && (
-                  <div className="mt-4">
-                    <p className="text-sm text-muted-foreground mb-2">File size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedFile(null)}
-                    >
-                      Clear
-                    </Button>
+              // Enhanced single file upload - Full width with better UX
+              <div className="space-y-4">
+                {!selectedFile ? (
+                  // Large prominent upload zone
+                  <div
+                    onDrop={handleDrop}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('border-blue-500', 'bg-blue-50');
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50');
+                    }}
+                    className="border-3 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-400 hover:bg-gray-50 transition-all duration-200 cursor-pointer group"
+                    onClick={() => document.getElementById('fileInput')?.click()}
+                  >
+                    {/* Upload Icon with animation */}
+                    <div className="relative inline-block">
+                      <Upload className="w-20 h-20 mx-auto mb-6 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                      <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <span className="text-white text-xs font-bold">+</span>
+                      </div>
+                    </div>
+                    
+                    {/* Main message */}
+                    <h3 className="text-2xl font-semibold mb-2 text-gray-700 group-hover:text-blue-600 transition-colors">
+                      Drop your file here
+                    </h3>
+                    <p className="text-base text-gray-500 mb-6">
+                      or click to browse from your computer
+                    </p>
+                    
+                    {/* Supported formats with icons */}
+                    <div className="flex items-center justify-center gap-6 flex-wrap">
+                      {activeTab === 'documents' && (
+                        <>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📝</span>
+                            <span className="text-sm font-medium text-gray-700">Word</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📊</span>
+                            <span className="text-sm font-medium text-gray-700">Excel</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📄</span>
+                            <span className="text-sm font-medium text-gray-700">PDF</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📑</span>
+                            <span className="text-sm font-medium text-gray-700">PowerPoint</span>
+                          </div>
+                        </>
+                      )}
+                      {activeTab === 'images' && (
+                        <>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">🖼️</span>
+                            <span className="text-sm font-medium text-gray-700">JPG</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">🎨</span>
+                            <span className="text-sm font-medium text-gray-700">PNG</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">🌐</span>
+                            <span className="text-sm font-medium text-gray-700">WebP</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📱</span>
+                            <span className="text-sm font-medium text-gray-700">HEIC</span>
+                          </div>
+                        </>
+                      )}
+                      {activeTab === 'ocr' && (
+                        <>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">🖼️</span>
+                            <span className="text-sm font-medium text-gray-700">JPG</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">🎨</span>
+                            <span className="text-sm font-medium text-gray-700">PNG</span>
+                          </div>
+                          <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
+                            <span className="text-2xl">📄</span>
+                            <span className="text-sm font-medium text-gray-700">PDF with text</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* File size limit info */}
+                    <p className="text-xs text-gray-400 mt-6">
+                      Maximum file size: 50MB
+                    </p>
+                    
+                    <input
+                      id="fileInput"
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                      accept={
+                        activeTab === 'documents'
+                          ? '.docx,.doc,.pdf,.xlsx,.xls,.pptx,.ppt'
+                          : activeTab === 'images'
+                          ? 'image/*'
+                          : 'image/*'
+                      }
+                    />
+                  </div>
+                ) : (
+                  // File selected - Show file info card
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      {/* File icon based on type */}
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 bg-white rounded-lg shadow-md flex items-center justify-center text-3xl">
+                          {selectedFile.name.endsWith('.pdf') && '📄'}
+                          {(selectedFile.name.endsWith('.docx') || selectedFile.name.endsWith('.doc')) && '📝'}
+                          {(selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls')) && '📊'}
+                          {(selectedFile.name.endsWith('.pptx') || selectedFile.name.endsWith('.ppt')) && '📑'}
+                          {selectedFile.type.startsWith('image/') && '🖼️'}
+                          {!selectedFile.name.match(/\.(pdf|docx?|xlsx?|pptx?)$/i) && !selectedFile.type.startsWith('image/') && '📎'}
+                        </div>
+                      </div>
+                      
+                      {/* File details */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-1 truncate" title={selectedFile.name}>
+                          {selectedFile.name}
+                        </h4>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Size:</span>
+                            <span>{(selectedFile.size / 1024).toFixed(2)} KB</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Type:</span>
+                            <span className="uppercase">{selectedFile.name.split('.').pop()}</span>
+                          </div>
+                        </div>
+                        
+                        {/* Success indicator */}
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm text-green-700 font-medium">Ready to process</span>
+                        </div>
+                      </div>
+                      
+                      {/* Clear button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedFile(null)}
+                        className="flex-shrink-0 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                      >
+                        <span className="mr-1">✕</span> Remove
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2214,7 +2876,25 @@ export default function ToolsPage() {
         {/* Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Actions</CardTitle>
+            <CardTitle className="flex items-center justify-between">
+              <span>Actions</span>
+              {selectedFile && (
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    <span className="mr-1">🔄</span> Convert
+                  </Badge>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    <span className="mr-1">✏️</span> Edit
+                  </Badge>
+                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                    <span className="mr-1">📚</span> Batch
+                  </Badge>
+                  <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                    <span className="mr-1">🔍</span> OCR
+                  </Badge>
+                </div>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -2247,14 +2927,20 @@ export default function ToolsPage() {
                             </p>
                           </div>
                           
-                          <Button
-                            onClick={handleWordToPdf}
-                            disabled={isOperationLoading('word-to-pdf')}
-                            className="w-full bg-blue-600 hover:bg-blue-700"
-                          >
-                            {isOperationLoading('word-to-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
-                            <span className="ml-2">Chuyển sang PDF</span>
-                          </Button>
+                          <div className="space-y-1">
+                            <Button
+                              onClick={handleWordToPdf}
+                              disabled={isOperationLoading('word-to-pdf')}
+                              className="w-full bg-blue-600 hover:bg-blue-700"
+                            >
+                              {isOperationLoading('word-to-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
+                              <span className="ml-2">Chuyển sang PDF</span>
+                            </Button>
+                            <div className="flex items-center justify-center gap-2 text-xs">
+                              <span className="text-gray-500">Powered by:</span>
+                              <TechnologyBadge tech="gotenberg" showQuality size="small" />
+                            </div>
+                          </div>
                           
                           <Button
                             onClick={() => {
@@ -2403,14 +3089,35 @@ export default function ToolsPage() {
                             <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                               Chuyển đổi
                             </h3>
-                            <Button
-                              onClick={handlePdfToWord}
-                              disabled={loading}
-                              className="w-full bg-red-600 hover:bg-red-700"
-                            >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📝'}
-                              <span className="ml-2">Chuyển sang Word</span>
-                            </Button>
+                            <div className="space-y-1">
+                              <Button
+                                onClick={() => {
+                                  setShowPdfToWordModal(!showPdfToWordModal);
+                                  // Scroll to modal if opening
+                                  if (!showPdfToWordModal) {
+                                    setTimeout(() => {
+                                      const modal = document.querySelector('[data-modal="pdf-to-word"]');
+                                      if (modal) {
+                                        modal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                      }
+                                    }, 100);
+                                  }
+                                }}
+                                disabled={loading}
+                                className="w-full bg-red-600 hover:bg-red-700"
+                              >
+                                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📝'}
+                                <span className="ml-2">Chuyển sang Word</span>
+                                {showPdfToWordModal && <span className="ml-auto">▼</span>}
+                                {!showPdfToWordModal && <span className="ml-auto">▶</span>}
+                              </Button>
+                              <div className="flex items-center justify-center gap-2 text-xs">
+                                <span className="text-gray-500">Powered by:</span>
+                                <TechnologyBadge tech="adobe" showQuality size="small" />
+                                <span className="text-gray-400">→</span>
+                                <TechnologyBadge tech="pdf2docx" showQuality size="small" />
+                              </div>
+                            </div>
                             
                             <Button
                               onClick={() => {
@@ -2425,14 +3132,20 @@ export default function ToolsPage() {
                               <span className="ml-2">Chuyển NHIỀU PDF → Word</span>
                             </Button>
                             
-                            <Button
-                              onClick={handlePdfToExcel}
-                              disabled={loading}
-                              className="w-full bg-green-600 hover:bg-green-700"
-                            >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📊'}
-                              <span className="ml-2">Chuyển sang Excel</span>
-                            </Button>
+                            <div className="space-y-1">
+                              <Button
+                                onClick={handlePdfToExcel}
+                                disabled={loading}
+                                className="w-full bg-green-600 hover:bg-green-700"
+                              >
+                                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📊'}
+                                <span className="ml-2">Chuyển sang Excel</span>
+                              </Button>
+                              <div className="flex items-center justify-center gap-2 text-xs">
+                                <span className="text-gray-500">Powered by:</span>
+                                <TechnologyBadge tech="pdfplumber" showQuality size="small" />
+                              </div>
+                            </div>
                             
                             <Button
                               onClick={() => {
@@ -2455,33 +3168,39 @@ export default function ToolsPage() {
                             </h3>
                             <Button
                               onClick={handleExtractPdfText}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📝'}
+                              {isOperationLoading('extract-text') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📝'}
                               <span className="ml-2">Trích xuất Text</span>
                             </Button>
                             
                             <Button
                               onClick={handlePdfInfo}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'ℹ️'}
+                              {isOperationLoading('pdf-info') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'ℹ️'}
                               <span className="ml-2">Xem Thông Tin PDF</span>
                             </Button>
                             
-                            <Button
-                              onClick={handleCompressPdf}
-                              disabled={loading}
-                              className="w-full"
-                              variant="outline"
-                            >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📦'}
-                              <span className="ml-2">Nén PDF</span>
-                            </Button>
+                            <div className="space-y-1">
+                              <Button
+                                onClick={handleCompressPdf}
+                                disabled={!isPdfSelected() || isAnyOperationLoading()}
+                                className="w-full"
+                                variant="outline"
+                              >
+                                {isOperationLoading('compress') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📦'}
+                                <span className="ml-2">Nén PDF</span>
+                              </Button>
+                              <div className="flex items-center justify-center gap-2 text-xs">
+                                <span className="text-gray-500">Powered by:</span>
+                                <TechnologyBadge tech="pypdf" showQuality size="small" />
+                              </div>
+                            </div>
                             
                             <Button
                               onClick={() => {
@@ -2489,7 +3208,7 @@ export default function ToolsPage() {
                                 setBatchOperation('compress-pdf');
                                 setBatchFiles([selectedFile]);
                               }}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                             >
                               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📚'}
@@ -2498,7 +3217,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('split')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2508,7 +3227,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('rotate')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2518,7 +3237,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('watermark')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2528,7 +3247,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('protect')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2538,7 +3257,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('unlock')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2548,7 +3267,7 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('to-images')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
@@ -2558,13 +3277,56 @@ export default function ToolsPage() {
                             
                             <Button
                               onClick={() => setPdfOperation('page-numbers')}
-                              disabled={loading}
+                              disabled={!isPdfSelected() || isAnyOperationLoading()}
                               className="w-full"
                               variant="outline"
                             >
                               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔢'}
                               <span className="ml-2">Thêm Số Trang</span>
                             </Button>
+
+                            {/* NEW: Adobe-only features */}
+                            <div className="col-span-3 mt-4 pt-4 border-t border-blue-200">
+                              <h3 className="text-sm font-semibold text-blue-700 mb-3 flex items-center gap-2">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                Adobe AI-Powered Features (Cloud)
+                              </h3>
+                              
+                              <div className="grid grid-cols-3 gap-2">
+                                <Button
+                                  onClick={() => setShowOcrModal(true)}
+                                  disabled={!isPdfSelected() || isAnyOperationLoading()}
+                                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                >
+                                  {isOperationLoading('ocr-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔍'}
+                                  <span className="ml-2">OCR PDF</span>
+                                </Button>
+
+                                <Button
+                                  onClick={() => setShowExtractModal(true)}
+                                  disabled={!isPdfSelected() || isAnyOperationLoading()}
+                                  className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+                                >
+                                  {isOperationLoading('extract-content') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔬'}
+                                  <span className="ml-2">Extract Content</span>
+                                </Button>
+
+                                <Button
+                                  onClick={() => setShowHtmlToPdfModal(true)}
+                                  disabled={isAnyOperationLoading()}
+                                  className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                                >
+                                  {isOperationLoading('html-to-pdf') ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🌐'}
+                                  <span className="ml-2">HTML → PDF</span>
+                                </Button>
+                              </div>
+                              
+                              <p className="text-xs text-gray-500 mt-2 italic">
+                                ⚡ Powered by Adobe PDF Services API • 10/10 Quality • 500 free transactions/month
+                              </p>
+                            </div>
                           </div>
 
                           {/* PDF Operation Forms */}
@@ -2835,6 +3597,404 @@ export default function ToolsPage() {
                             </div>
                           )}
 
+                          {/* NEW: OCR Modal */}
+                          {showOcrModal && (
+                            <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 rounded-lg space-y-3 shadow-lg">
+                              <h4 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                                🔍 OCR - Nhận Dạng Chữ (Adobe AI)
+                              </h4>
+                              <p className="text-sm text-purple-700">
+                                Chuyển đổi PDF scan thành PDF có thể tìm kiếm và copy text. Hỗ trợ 50+ ngôn ngữ.
+                              </p>
+                              <div>
+                                <label className="block text-sm font-semibold text-purple-900 mb-2">
+                                  📝 Chọn Ngôn Ngữ:
+                                </label>
+                                <select
+                                  value={ocrLanguage}
+                                  onChange={(e) => setOcrLanguage(e.target.value)}
+                                  className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                >
+                                  <option value="vi-VN">🇻🇳 Tiếng Việt (Vietnamese)</option>
+                                  <option value="en-US">🇺🇸 English (US)</option>
+                                  <option value="en-GB">🇬🇧 English (UK)</option>
+                                  <option value="fr-FR">🇫🇷 Français (French)</option>
+                                  <option value="de-DE">🇩🇪 Deutsch (German)</option>
+                                  <option value="es-ES">🇪🇸 Español (Spanish)</option>
+                                  <option value="it-IT">🇮🇹 Italiano (Italian)</option>
+                                  <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
+                                  <option value="ko-KR">🇰🇷 한국어 (Korean)</option>
+                                  <option value="zh-CN">🇨🇳 简体中文 (Chinese Simplified)</option>
+                                  <option value="zh-TW">🇹🇼 繁體中文 (Chinese Traditional)</option>
+                                  <option value="th-TH">🇹🇭 ไทย (Thai)</option>
+                                  <option value="ru-RU">🇷🇺 Русский (Russian)</option>
+                                  <option value="ar-SA">🇸🇦 العربية (Arabic)</option>
+                                </select>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={handleOcrPdf}
+                                  disabled={loading || !isPdfSelected()}
+                                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                >
+                                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔍'}
+                                  Bắt Đầu OCR
+                                </Button>
+                                <Button
+                                  onClick={() => setShowOcrModal(false)}
+                                  variant="outline"
+                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                                >
+                                  Đóng
+                                </Button>
+                              </div>
+                              <p className="text-xs text-purple-600 italic">
+                                ⚡ AI-powered • 10/10 accuracy • Preserves original layout
+                              </p>
+                            </div>
+                          )}
+
+                          {/* NEW: Extract Content Modal */}
+                          {showExtractModal && (
+                            <div className="p-4 bg-gradient-to-br from-indigo-50 to-blue-50 border-2 border-indigo-300 rounded-lg space-y-3 shadow-lg">
+                              <h4 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
+                                🔬 Extract Content (Adobe AI)
+                              </h4>
+                              <p className="text-sm text-indigo-700">
+                                Trích xuất thông minh: tables → Excel data, images → PNG files, text với font info
+                              </p>
+                              <div>
+                                <label className="block text-sm font-semibold text-indigo-900 mb-2">
+                                  📦 Loại nội dung cần trích xuất:
+                                </label>
+                                <select
+                                  value={extractType}
+                                  onChange={(e) => setExtractType(e.target.value)}
+                                  className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                >
+                                  <option value="all">📚 All - Toàn bộ (text, tables, images)</option>
+                                  <option value="text">📝 Text Only - Chỉ text với font information</option>
+                                  <option value="tables">📊 Tables Only - Chỉ bảng biểu (Excel format)</option>
+                                  <option value="images">🖼️ Images Only - Chỉ hình ảnh (PNG files)</option>
+                                </select>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={handleExtractContent}
+                                  disabled={loading || !isPdfSelected()}
+                                  className="flex-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700"
+                                >
+                                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔬'}
+                                  Trích Xuất
+                                </Button>
+                                <Button
+                                  onClick={() => setShowExtractModal(false)}
+                                  variant="outline"
+                                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+                                >
+                                  Đóng
+                                </Button>
+                              </div>
+                              <p className="text-xs text-indigo-600 italic">
+                                ⚡ AI-powered structure detection • Character bounding boxes • Data mining ready
+                              </p>
+                            </div>
+                          )}
+
+                          {/* NEW: HTML to PDF Modal */}
+                          {showHtmlToPdfModal && (
+                            <div className="p-4 bg-gradient-to-br from-green-50 to-teal-50 border-2 border-green-300 rounded-lg space-y-3 shadow-lg">
+                              <h4 className="text-lg font-bold text-green-900 flex items-center gap-2">
+                                🌐 HTML to PDF (Adobe CreatePDF)
+                              </h4>
+                              <p className="text-sm text-green-700">
+                                Perfect rendering with full CSS3 support. Ideal for invoices, reports, certificates.
+                              </p>
+                              <div>
+                                <label className="block text-sm font-semibold text-green-900 mb-2">
+                                  📄 HTML Content:
+                                </label>
+                                <textarea
+                                  value={htmlContent}
+                                  onChange={(e) => setHtmlContent(e.target.value)}
+                                  placeholder={`<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Arial; margin: 20px; }
+    h1 { color: #333; }
+  </style>
+</head>
+<body>
+  <h1>My Document</h1>
+  <p>Content here...</p>
+</body>
+</html>`}
+                                  className="w-full px-4 py-3 border-2 border-green-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                  rows={8}
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                                    📏 Page Size:
+                                  </label>
+                                  <select
+                                    value={htmlPageSize}
+                                    onChange={(e) => setHtmlPageSize(e.target.value)}
+                                    className="w-full px-3 py-2 border-2 border-green-300 rounded-lg text-sm"
+                                  >
+                                    <option value="A4">A4 (210mm × 297mm)</option>
+                                    <option value="Letter">Letter (8.5in × 11in)</option>
+                                    <option value="Legal">Legal (8.5in × 14in)</option>
+                                    <option value="A3">A3 (297mm × 420mm)</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-semibold text-green-900 mb-2">
+                                    🔄 Orientation:
+                                  </label>
+                                  <select
+                                    value={htmlOrientation}
+                                    onChange={(e) => setHtmlOrientation(e.target.value)}
+                                    className="w-full px-3 py-2 border-2 border-green-300 rounded-lg text-sm"
+                                  >
+                                    <option value="portrait">📄 Portrait (Vertical)</option>
+                                    <option value="landscape">📃 Landscape (Horizontal)</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={handleHtmlToPdf}
+                                  disabled={loading || !htmlContent.trim()}
+                                  className="flex-1 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                                >
+                                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🌐'}
+                                  Convert to PDF
+                                </Button>
+                                <Button
+                                  onClick={() => setShowHtmlToPdfModal(false)}
+                                  variant="outline"
+                                  className="border-green-300 text-green-700 hover:bg-green-100"
+                                >
+                                  Đóng
+                                </Button>
+                              </div>
+                              <p className="text-xs text-green-600 italic">
+                                ⚡ Chrome-quality rendering • Full CSS3 & JavaScript support • Perfect for invoices
+                              </p>
+                            </div>
+                          )}
+
+                          {/* NEW: PDF to Word OCR Options Modal */}
+                          {showPdfToWordModal && (
+                            <div 
+                              data-modal="pdf-to-word"
+                              className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-300 rounded-lg space-y-3 shadow-lg animate-in slide-in-from-top duration-300"
+                            >
+                              <h4 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+                                📝 PDF → Word Conversion Options
+                              </h4>
+                              <p className="text-sm text-blue-700">
+                                Chọn công nghệ chuyển đổi tốt nhất cho PDF của bạn.
+                              </p>
+                              
+                              {/* NEW: Gemini API Option */}
+                              <div className="space-y-3">
+                                <label className="flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-lg cursor-pointer hover:bg-emerald-100 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={useGemini}
+                                    onChange={(e) => setUseGemini(e.target.checked)}
+                                    className="w-5 h-5 text-emerald-600 rounded focus:ring-2 focus:ring-emerald-500"
+                                  />
+                                  <div>
+                                    <span className="text-sm font-bold text-emerald-900 block">
+                                      ⭐ Sử dụng Gemini API (KHUYẾN NGHỊ)
+                                    </span>
+                                    <span className="text-xs text-emerald-700 block">
+                                      🇻🇳 Hỗ trợ Tiếng Việt • 📊 Xuất sắc cho bảng biểu • � Multiple models to choose
+                                    </span>
+                                    <span className="text-xs text-emerald-600 italic">
+                                      Native PDF reading, không cần OCR preprocessing
+                                    </span>
+                                  </div>
+                                </label>
+
+                                {/* Model Selector - Only show when Gemini is enabled */}
+                                {useGemini && (
+                                  <div className="bg-white rounded-lg p-4 border-2 border-emerald-200">
+                                    <GeminiModelSelector
+                                      value={geminiModel}
+                                      onChange={setGeminiModel}
+                                      showDetails={true}
+                                      disabled={loading}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Separator when Gemini is not selected */}
+                              {!useGemini && (
+                                <div className="flex items-center gap-3">
+                                  <div className="flex-1 h-px bg-gray-300"></div>
+                                  <span className="text-xs text-gray-500 bg-white px-2">HOẶC</span>
+                                  <div className="flex-1 h-px bg-gray-300"></div>
+                                </div>
+                              )}
+
+                              {/* Adobe OCR Options (only show if Gemini not selected) */}
+                              {!useGemini && (
+                                <>
+                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                    <p className="text-xs text-amber-800 font-semibold mb-1">
+                                      ⚠️ Adobe PDF Services không hỗ trợ Tiếng Việt!
+                                    </p>
+                                    <p className="text-xs text-amber-700">
+                                      Nếu PDF có nội dung Tiếng Việt, vui lòng chọn Gemini API ở trên.
+                                    </p>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <label className="flex items-center gap-3 p-3 bg-white border-2 border-blue-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                                      <input
+                                        type="checkbox"
+                                        checked={autoDetectScanned}
+                                        onChange={(e) => setAutoDetectScanned(e.target.checked)}
+                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <div>
+                                        <span className="text-sm font-semibold text-blue-900 block">
+                                          🤖 Tự động phát hiện PDF scan
+                                        </span>
+                                        <span className="text-xs text-blue-600">
+                                          Tự động bật OCR nếu PDF không có text layer (khuyến nghị)
+                                        </span>
+                                      </div>
+                                    </label>
+                                    
+                                    {/* Manual OCR enable option */}
+                                    <label className="flex items-center gap-3 p-3 bg-white border-2 border-blue-200 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                                      <input
+                                        type="checkbox"
+                                        checked={enableOcr}
+                                        onChange={(e) => setEnableOcr(e.target.checked)}
+                                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <div>
+                                        <span className="text-sm font-semibold text-blue-900 block">
+                                          🔍 Bật OCR thủ công
+                                        </span>
+                                        <span className="text-xs text-blue-600">
+                                          Bắt buộc sử dụng OCR cho tất cả PDF (bỏ qua auto-detect)
+                                        </span>
+                                      </div>
+                                    </label>
+                                  </div>
+
+                                  {/* Language selection (shown if either option enabled) */}
+                                  {(enableOcr || autoDetectScanned) && (
+                                    <div>
+                                      <label className="block text-sm font-semibold text-blue-900 mb-2">
+                                        🌐 Ngôn ngữ OCR (Adobe - KHÔNG bao gồm Tiếng Việt):
+                                      </label>
+                                      <select
+                                        value={ocrLanguage}
+                                        onChange={(e) => setOcrLanguage(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      >
+                                        <option value="en-US">🇺🇸 English (US)</option>
+                                        <option value="en-GB">🇬🇧 English (UK)</option>
+                                        <option value="fr-FR">🇫🇷 Français (French)</option>
+                                        <option value="de-DE">🇩🇪 Deutsch (German)</option>
+                                        <option value="es-ES">🇪🇸 Español (Spanish)</option>
+                                        <option value="it-IT">🇮🇹 Italiano (Italian)</option>
+                                        <option value="ja-JP">🇯🇵 日本語 (Japanese)</option>
+                                        <option value="ko-KR">🇰🇷 한국어 (Korean)</option>
+                                        <option value="zh-CN">🇨🇳 简体中文 (Chinese Simplified)</option>
+                                        <option value="zh-TW">🇹🇼 繁體中文 (Chinese Traditional)</option>
+                                        <option value="th-TH">🇹🇭 ไทย (Thai)</option>
+                                        <option value="ru-RU">🇷🇺 Русский (Russian)</option>
+                                        <option value="ar-SA">🇸🇦 العربية (Arabic)</option>
+                                      </select>
+                                      <p className="text-xs text-red-600 mt-1 italic font-semibold">
+                                        ❌ Adobe KHÔNG hỗ trợ Tiếng Việt. Sử dụng Gemini để xử lý Tiếng Việt!
+                                      </p>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+
+                              {/* Action buttons */}
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => {
+                                    setShowPdfToWordModal(false);
+                                    handlePdfToWord();
+                                  }}
+                                  disabled={loading}
+                                  className={`flex-1 ${
+                                    useGemini 
+                                      ? 'bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700'
+                                      : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
+                                  }`}
+                                >
+                                  {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : (useGemini ? '⭐' : '📝')}
+                                  {useGemini ? 'Chuyển Đổi với Gemini' : 'Chuyển Đổi với Adobe'}
+                                </Button>
+                                <Button
+                                  onClick={() => setShowPdfToWordModal(false)}
+                                  variant="outline"
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                                >
+                                  Hủy
+                                </Button>
+                              </div>
+                              
+                              {/* Info text - Dynamic based on selection */}
+                              <div className={`border rounded-lg p-3 space-y-1 ${
+                                useGemini 
+                                  ? 'bg-emerald-100 border-emerald-300'
+                                  : 'bg-blue-100 border-blue-300'
+                              }`}>
+                                {useGemini ? (
+                                  <>
+                                    <p className="text-xs text-emerald-800 font-semibold">
+                                      ⭐ Gemini API - Giải pháp tốt nhất cho Tiếng Việt:
+                                    </p>
+                                    <ul className="text-xs text-emerald-700 space-y-1 ml-4 list-disc">
+                                      <li><strong>✅ Hỗ trợ Tiếng Việt:</strong> 100+ ngôn ngữ bao gồm Vietnamese</li>
+                                      <li><strong>📊 Xuất sắc cho bảng:</strong> Hiểu layout & structure tốt hơn</li>
+                                      <li><strong>💰 Rẻ hơn 85%:</strong> $6.43/30k pages vs Google Vision $43.50</li>
+                                      <li><strong>🚀 Không cần OCR:</strong> Đọc PDF trực tiếp, nhanh hơn</li>
+                                    </ul>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="text-xs text-blue-800 font-semibold">
+                                      ℹ️ Adobe PDF Services - Cách hoạt động:
+                                    </p>
+                                    <ul className="text-xs text-blue-700 space-y-1 ml-4 list-disc">
+                                      <li><strong>Auto-detect ON:</strong> Tự động kiểm tra PDF có text layer không, bật OCR nếu cần</li>
+                                      <li><strong>Manual OCR ON:</strong> Luôn sử dụng OCR cho tất cả PDF</li>
+                                      <li><strong>Cả hai OFF:</strong> Chuyển đổi trực tiếp không OCR (nhanh hơn cho PDF bình thường)</li>
+                                    </ul>
+                                  </>
+                                )}
+                              </div>
+
+                              <p className={`text-xs italic text-center ${
+                                useGemini ? 'text-emerald-600' : 'text-blue-600'
+                              }`}>
+                                {useGemini 
+                                  ? '⚡ Google Gemini • Native PDF understanding • 100+ languages • $6.43/30k pages'
+                                  : '⚡ Adobe AI-powered • One-step OCR + Conversion • NO Vietnamese support'
+                                }
+                              </p>
+                            </div>
+                          )}
+
                           <div className="space-y-1">
                             <Button
                               onClick={() => setPdfOperation('merge')}
@@ -2900,14 +4060,20 @@ export default function ToolsPage() {
                             <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                               Xử lý ảnh
                             </h3>
-                            <Button
-                              onClick={handleImageResize}
-                              disabled={loading}
-                              className="w-full bg-purple-600 hover:bg-purple-700"
-                            >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📏'}
-                              <span className="ml-2">Resize (800px width)</span>
-                            </Button>
+                            <div className="space-y-1">
+                              <Button
+                                onClick={handleImageResize}
+                                disabled={loading}
+                                className="w-full bg-purple-600 hover:bg-purple-700"
+                              >
+                                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📏'}
+                                <span className="ml-2">Resize (800px width)</span>
+                              </Button>
+                              <div className="flex items-center justify-center gap-2 text-xs">
+                                <span className="text-gray-500">Powered by:</span>
+                                <TechnologyBadge tech="pillow" showQuality size="small" />
+                              </div>
+                            </div>
                             <Button
                               onClick={handleRemoveBackground}
                               disabled={loading}
@@ -2923,15 +4089,21 @@ export default function ToolsPage() {
                             <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                               Chuyển đổi
                             </h3>
-                            <Button
-                              onClick={handleImageToPdf}
-                              disabled={loading}
-                              className="w-full"
-                              variant="outline"
-                            >
-                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
-                              <span className="ml-2">Chuyển sang PDF</span>
-                            </Button>
+                            <div className="space-y-1">
+                              <Button
+                                onClick={handleImageToPdf}
+                                disabled={loading}
+                                className="w-full"
+                                variant="outline"
+                              >
+                                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '📄'}
+                                <span className="ml-2">Chuyển sang PDF</span>
+                              </Button>
+                              <div className="flex items-center justify-center gap-2 text-xs">
+                                <span className="text-gray-500">Powered by:</span>
+                                <TechnologyBadge tech="pillow" showQuality size="small" />
+                              </div>
+                            </div>
                             
                             <Button
                               onClick={() => {
@@ -2994,14 +4166,22 @@ export default function ToolsPage() {
                             </p>
                           </div>
                           
-                          <Button
-                            onClick={handleOCR}
-                            disabled={loading}
-                            className="w-full bg-cyan-600 hover:bg-cyan-700"
-                          >
-                            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔍'}
-                            <span className="ml-2">Trích Xuất Text (VI + EN)</span>
-                          </Button>
+                          <div className="space-y-1">
+                            <Button
+                              onClick={handleOCR}
+                              disabled={loading}
+                              className="w-full bg-cyan-600 hover:bg-cyan-700"
+                            >
+                              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : '🔍'}
+                              <span className="ml-2">Trích Xuất Text (VI + EN)</span>
+                            </Button>
+                            <div className="flex items-center justify-center gap-2 text-xs">
+                              <span className="text-gray-500">Powered by:</span>
+                              <TechnologyBadge tech="tesseract" showQuality size="small" />
+                              <span className="text-gray-400">→</span>
+                              <TechnologyBadge tech="adobe" showQuality size="small" />
+                            </div>
+                          </div>
 
                           <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
                             🌍 <strong>Hỗ trợ:</strong> Tiếng Việt, English, và 80+ ngôn ngữ khác
@@ -3040,9 +4220,48 @@ export default function ToolsPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Progress Indicator */}
-      {loading && (
+      {loading && currentTechnology && (
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <ConversionProgress
+              tech={currentTechnology}
+              status={uploadProgress < 100 ? 'uploading' : 'processing'}
+              progress={Math.max(uploadProgress, processingProgress)}
+            />
+            
+            <div className="mt-4 text-center text-sm text-gray-600">
+              {uploadProgress < 100
+                ? `📤 Đang tải lên... ${uploadProgress}%`
+                : `⚙️ Đang xử lý file... ${processingProgress}%`
+              }
+              {processingTime > 0 && (
+                <span className="ml-2 text-gray-500">
+                  ({(processingTime / 1000).toFixed(1)}s)
+                </span>
+              )}
+            </div>
+            
+            {abortController && (
+              <div className="mt-4 flex justify-center">
+                <Button
+                  onClick={handleCancelOperation}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                >
+                  ❌ Hủy Thao Tác
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Fallback loading indicator without technology (for legacy operations) */}
+      {loading && !currentTechnology && (
         <Card className="mt-6">
           <CardContent className="pt-6">
             <div className="space-y-4">
@@ -3122,7 +4341,23 @@ export default function ToolsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {result.type === 'download' && (
+            {result.type === 'download' && result.technology && (
+              <ConversionResult
+                filename={result.outputFile}
+                fileSize={result.outputSize}
+                tech={result.technology}
+                quality={result.quality}
+                processingTime={result.processingTime / 1000}
+                quotaRemaining={result.quotaRemaining}
+                downloadUrl={result.downloadUrl}
+                onConvertAnother={() => {
+                  setResult(null);
+                  setSelectedFile(null);
+                }}
+              />
+            )}
+            
+            {result.type === 'download' && !result.technology && (
               <div className="space-y-4">
                 {/* Success Banner */}
                 <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">

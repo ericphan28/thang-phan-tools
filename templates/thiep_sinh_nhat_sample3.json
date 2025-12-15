@@ -1,0 +1,17 @@
+{
+  "celebrant": {
+    "name": "Ông Nguyễn Văn Hải",
+    "age": "60"
+  },
+  
+  "event": {
+    "date": "Sunday, January 5th, 2025",
+    "time": "11:00 AM - 2:00 PM",
+    "venue": "Nhà hàng Sen Hồ Tây, 614 Lạc Long Quân, Tây Hồ, Hà Nội"
+  },
+  
+  "contact": {
+    "phone": "0912 333 444",
+    "email": "nguyenhai60@yahoo.com"
+  }
+}

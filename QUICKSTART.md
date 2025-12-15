@@ -6,14 +6,17 @@
 - Face Recognition (Nhận diện khuôn mặt)
 - Image Processing (Xử lý hình ảnh)
 - Document Processing (Xử lý tài liệu PDF, Word)
+  - ☁️ **Adobe PDF Services** (OCR, Smart Extract, HTML→PDF - 10/10 quality)
+  - 🖥️ Local tools (Gotenberg, pypdf, pdf2docx - 7-8/10 quality)
 - OCR (Nhận dạng chữ từ ảnh)
 - Text Processing (Xử lý văn bản)
 
 ✅ **Stack công nghệ:**
 - Backend: FastAPI (Python)
-- Database: PostgreSQL
-- Cache: Redis
-- Web Server: Nginx
+- Frontend: React 19 + TypeScript + Vite
+- PDF: Adobe API + Gotenberg + pypdf
+- Database: PostgreSQL (optional)
+- Cache: Redis (optional)
 - Container: Docker
 
 ✅ **Code đã có trong:** `D:\thang\utility-server`
@@ -36,6 +39,19 @@ REDIS_PASSWORD=Redis456!@#       # Đổi password Redis
 SECRET_KEY=random-key-here       # Random string bất kỳ
 JWT_SECRET_KEY=jwt-key-here      # Random string bất kỳ
 ```
+
+**Optional: Enable Adobe AI Features** (500 free/month)
+```
+USE_ADOBE_PDF_API=true
+ADOBE_CLIENT_ID=your_client_id
+ADOBE_CLIENT_SECRET=your_secret
+
+# Technology priority (Adobe-first or local-first)
+COMPRESS_PRIORITY=adobe,pypdf      # Try Adobe 10/10, fallback pypdf 7/10
+WATERMARK_PRIORITY=adobe,pypdf     # Try Adobe 10/10, fallback pypdf 8/10
+```
+
+See **ADOBE_QUICKSTART_GUIDE.md** for detailed setup instructions.
 
 ### Bước 2: Chạy script deploy
 ```powershell

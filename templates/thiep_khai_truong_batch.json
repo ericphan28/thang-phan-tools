@@ -1,0 +1,102 @@
+[
+  {
+    "guest": {
+      "name": "Ông Nguyễn Văn A",
+      "title": "Giám Đốc Công ty TNHH ABC"
+    },
+    "business": {
+      "name": "SHOWROOM ĐIỆN MÁY XANH PLUS",
+      "slogan": "Uy tín - Chất lượng - Giá tốt nhất"
+    },
+    "venue": {
+      "address": "Số 123 Đường Láng, Đống Đa, Hà Nội"
+    },
+    "event": {
+      "datetime": "08:00, Thứ Bảy, ngày 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Bà Trần Thị Mai",
+      "title": "Phó Giám Đốc Sở Công Thương Hà Nội"
+    },
+    "business": {
+      "name": "SHOWROOM ĐIỆN MÁY XANH PLUS",
+      "slogan": "Uy tín - Chất lượng - Giá tốt nhất"
+    },
+    "venue": {
+      "address": "Số 123 Đường Láng, Đống Đa, Hà Nội"
+    },
+    "event": {
+      "datetime": "08:00, Thứ Bảy, ngày 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Ông Phạm Minh Tuấn",
+      "title": "Chủ tịch Hội Doanh Nghiệp Trẻ Việt Nam"
+    },
+    "business": {
+      "name": "SHOWROOM ĐIỆN MÁY XANH PLUS",
+      "slogan": "Uy tín - Chất lượng - Giá tốt nhất"
+    },
+    "venue": {
+      "address": "Số 123 Đường Láng, Đống Đa, Hà Nội"
+    },
+    "event": {
+      "datetime": "08:00, Thứ Bảy, ngày 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Bà Lê Thu Hương",
+      "title": "Tổng Giám Đốc Tập Đoàn BĐS Golden Land"
+    },
+    "business": {
+      "name": "SHOWROOM ĐIỆN MÁY XANH PLUS",
+      "slogan": "Uy tín - Chất lượng - Giá tốt nhất"
+    },
+    "venue": {
+      "address": "Số 123 Đường Láng, Đống Đa, Hà Nội"
+    },
+    "event": {
+      "datetime": "08:00, Thứ Bảy, ngày 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Ông Hoàng Minh Đức",
+      "title": "Phó Chủ tịch UBND Quận Đống Đa"
+    },
+    "business": {
+      "name": "SHOWROOM ĐIỆN MÁY XANH PLUS",
+      "slogan": "Uy tín - Chất lượng - Giá tốt nhất"
+    },
+    "venue": {
+      "address": "Số 123 Đường Láng, Đống Đa, Hà Nội"
+    },
+    "event": {
+      "datetime": "08:00, Thứ Bảy, ngày 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  }
+]

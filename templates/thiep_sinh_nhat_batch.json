@@ -1,0 +1,47 @@
+[
+  {
+    "celebrant": {"name": "Bé Minh An", "age": "5"},
+    "event": {
+      "date": "Saturday, December 15th, 2024",
+      "time": "2:00 PM - 5:00 PM",
+      "venue": "KidZania Aeon Mall, Long Biên, Hà Nội"
+    },
+    "contact": {"phone": "0987 654 321", "email": "chuminhan@gmail.com"}
+  },
+  {
+    "celebrant": {"name": "Ms. Sarah Johnson", "age": "30"},
+    "event": {
+      "date": "Friday, December 20th, 2024",
+      "time": "7:00 PM - 11:00 PM",
+      "venue": "Skyline Rooftop Bar, Lotte Hotel, Hà Nội"
+    },
+    "contact": {"phone": "0909 888 777", "email": "sarah.johnson@gmail.com"}
+  },
+  {
+    "celebrant": {"name": "Ông Nguyễn Văn Hải", "age": "60"},
+    "event": {
+      "date": "Sunday, January 5th, 2025",
+      "time": "11:00 AM - 2:00 PM",
+      "venue": "Nhà hàng Sen Hồ Tây, Tây Hồ, Hà Nội"
+    },
+    "contact": {"phone": "0912 333 444", "email": "nguyenhai60@yahoo.com"}
+  },
+  {
+    "celebrant": {"name": "Bé Phương Anh", "age": "8"},
+    "event": {
+      "date": "Saturday, December 28th, 2024",
+      "time": "3:00 PM - 6:00 PM",
+      "venue": "Nhà hàng Pizza 4P's, Lê Đại Hành, Hai Bà Trưng, Hà Nội"
+    },
+    "contact": {"phone": "0976 555 666", "email": "phuonganh.mom@gmail.com"}
+  },
+  {
+    "celebrant": {"name": "Mr. David Miller", "age": "40"},
+    "event": {
+      "date": "Wednesday, January 15th, 2025",
+      "time": "6:30 PM - 10:00 PM",
+      "venue": "The Grill Restaurant, InterContinental, West Lake, Hà Nội"
+    },
+    "contact": {"phone": "0988 777 888", "email": "david.miller@company.com"}
+  }
+]

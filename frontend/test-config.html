@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Config</title>
+</head>
+<body>
+    <h1>API Configuration Test</h1>
+    <div id="result"></div>
+    
+    <script type="module">
+        import { API_BASE_URL } from './src/config.ts';
+        
+        document.getElementById('result').innerHTML = `
+            <p><strong>API_BASE_URL:</strong> ${API_BASE_URL}</p>
+            <p><strong>Expected:</strong> /api/v1</p>
+            <p><strong>Status:</strong> ${API_BASE_URL === '/api/v1' ? '✅ CORRECT' : '❌ INCORRECT'}</p>
+        `;
+        
+        console.log('API_BASE_URL:', API_BASE_URL);
+    </script>
+</body>
+</html>

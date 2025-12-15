@@ -1,0 +1,83 @@
+{
+  "_comment": "Mẫu JSON đơn giản cho Mẫu 2C - chỉ các field cơ bản, KHÔNG BAO GỒM bảng",
+  
+  "tinh": "Bình Dương",
+  "don_vi_truc_thuoc": "UBND Thành phố Thủ Dầu Một",
+  "don_vi_co_so": "Phòng Nội vụ",
+  "so_hieu": "BD-NV-2024-001",
+  
+  "ho_ten": "Nguyễn Văn An",
+  "gioi_tinh": "Nam",
+  "ten_khac": "Không",
+  
+  "cap_uy": "Chi bộ Phòng Nội vụ",
+  "cap_uy_kiem": "Không",
+  "chuc_vu": "Chuyên viên - Phòng Nội vụ UBND TP Thủ Dầu Một",
+  "phu_cap": "0.2 (hệ số)",
+  
+  "ngay": "15",
+  "thang": "08",
+  "nam": "1997",
+  "noi_sinh": "Phường Phú Hòa, TP Thủ Dầu Một, Bình Dương",
+  
+  "que_xa": "Xã Bình An",
+  "que_huyen": "Huyện Dĩ An",
+  "que_tinh": "Bình Dương",
+  
+  "dia_chi": "123/45 Đại lộ Bình Dương, Phường Phú Lợi, TP Thủ Dầu Một",
+  "dien_thoai": "0909123456",
+  
+  "dan_toc": "Kinh",
+  "ton_giao": "Phật giáo",
+  "thanh_phan": "Nông dân",
+  
+  "nghe_truoc": "Sinh viên",
+  "ngay_tuyen_dung": "01/09/2019",
+  "co_quan_tuyen_dung": "UBND TP Thủ Dầu Một",
+  
+  "ngay_vao_co_quan": "15/09/2019",
+  "ngay_cach_mang": "Không",
+  
+  "ngay_vao_dang": "15/05/2022",
+  "ngay_chinh_thuc": "15/05/2023",
+  
+  "to_chuc": "Đoàn TNCS HCM: 15/09/2012; Công đoàn: 01/10/2019",
+  
+  "ngay_nhap_ngu": "Không",
+  "ngay_xuat_ngu": "Không",
+  "quan_ham": "Không",
+  
+  "hoc_van": "12/12",
+  "hoc_vi": "Cử nhân Luật, năm 2019",
+  "ly_luan": "Trung cấp LLCT",
+  "ngoai_ngu": "Tiếng Anh B1 (TOEIC 550)",
+  
+  "cong_tac": "Thẩm định hồ sơ công chức, viên chức",
+  
+  "ngach": "Chuyên viên",
+  "ma_ngach": "01.003",
+  "bac": "3",
+  "he_so": "2.34",
+  "thang_luong": "10/2021",
+  
+  "danh_hieu": "Không",
+  "so_truong": "Công tác văn phòng, soạn thảo văn bản",
+  "cv_lau_nhat": "Thẩm định hồ sơ tuyển dụng",
+  
+  "khen_thuong": "Giấy khen Giám đốc Sở Nội vụ năm 2022",
+  "ky_luat": "Không",
+  
+  "suc_khoe": "Tốt",
+  "chieu_cao": "1m68",
+  "can_nang": "62",
+  "nhom_mau": "O",
+  
+  "cmnd": "274123456",
+  "thuong_binh": "Không",
+  "liet_si": "Không",
+  
+  "dao_tao_data": "Sẽ điền thủ công vào bảng trong Word",
+  "cong_tac_data": "Sẽ điền thủ công vào bảng trong Word",
+  "gia_dinh_data": "Sẽ điền thủ công vào bảng trong Word",
+  "gia_dinh_vo_chong_data": "Sẽ điền thủ công vào bảng trong Word"
+}

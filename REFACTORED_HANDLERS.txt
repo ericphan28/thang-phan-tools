@@ -1,0 +1,231 @@
+// 🔄 REFACTORED HANDLERS - Replace old handlers with these
+
+// Document: PDF to Word
+const handlePdfToWord = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'PDF → Word',
+    endpoint: '/documents/convert/pdf-to-word',
+    file: selectedFile,
+    outputFilename: selectedFile.name.replace('.pdf', '.docx'),
+    technology: 'adobe', // Will fallback to pdf2docx automatically
+    validateFileType: 'pdf',
+  });
+};
+
+// Document: PDF to Excel
+const handlePdfToExcel = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'PDF → Excel',
+    endpoint: '/documents/convert/pdf-to-excel',
+    file: selectedFile,
+    outputFilename: selectedFile.name.replace('.pdf', '.xlsx'),
+    technology: 'pdfplumber',
+    validateFileType: 'pdf',
+  });
+};
+
+// PDF Operations
+const handleExtractPdfText = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Extract Text',
+    endpoint: '/documents/extract-text',
+    file: selectedFile,
+    outputFilename: selectedFile.name.replace('.pdf', '.txt'),
+    technology: 'pdfplumber',
+    validateFileType: 'pdf',
+    responseType: 'blob',
+  });
+};
+
+const handlePdfInfo = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'PDF Info',
+    endpoint: '/documents/pdf-info',
+    file: selectedFile,
+    technology: 'pdfplumber',
+    validateFileType: 'pdf',
+    responseType: 'json',
+  });
+};
+
+const handleCompressPdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Compress PDF',
+    endpoint: '/documents/compress',
+    file: selectedFile,
+    additionalData: { level: 'medium' },
+    outputFilename: selectedFile.name.replace('.pdf', '_compressed.pdf'),
+    technology: 'adobe', // Can fallback to pypdf
+    validateFileType: 'pdf',
+  });
+};
+
+const handleSplitPdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  if (!pageRanges.trim()) {
+    toast.error('❌ Vui lòng nhập page ranges (ví dụ: 1-3,5-7)');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Split PDF',
+    endpoint: '/documents/split',
+    file: selectedFile,
+    additionalData: { pages: pageRanges },
+    outputFilename: selectedFile.name.replace('.pdf', '_split.pdf'),
+    technology: 'pypdf',
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+  setPageRanges('');
+};
+
+const handleRotatePdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Rotate PDF',
+    endpoint: '/documents/rotate',
+    file: selectedFile,
+    additionalData: {
+      angle: rotationAngle,
+      pages: specificPages || 'all'
+    },
+    outputFilename: selectedFile.name.replace('.pdf', '_rotated.pdf'),
+    technology: 'pypdf',
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+  setSpecificPages('');
+};
+
+const handleWatermarkPdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  if (!watermarkText.trim()) {
+    toast.error('❌ Vui lòng nhập text watermark');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Add Watermark',
+    endpoint: '/documents/watermark',
+    file: selectedFile,
+    additionalData: {
+      text: watermarkText,
+      position: watermarkPosition
+    },
+    outputFilename: selectedFile.name.replace('.pdf', '_watermark.pdf'),
+    technology: 'adobe', // Can fallback to pypdf
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+  setWatermarkText('');
+};
+
+const handleProtectPdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  if (!password.trim()) {
+    toast.error('❌ Vui lòng nhập password');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Protect PDF',
+    endpoint: '/documents/protect',
+    file: selectedFile,
+    additionalData: { password },
+    outputFilename: selectedFile.name.replace('.pdf', '_protected.pdf'),
+    technology: 'adobe', // Can fallback to pypdf
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+  setPassword('');
+};
+
+const handleUnlockPdf = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  if (!password.trim()) {
+    toast.error('❌ Vui lòng nhập password để mở khóa');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'Unlock PDF',
+    endpoint: '/documents/unlock',
+    file: selectedFile,
+    additionalData: { password },
+    outputFilename: selectedFile.name.replace('.pdf', '_unlocked.pdf'),
+    technology: 'pypdf',
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+  setPassword('');
+};
+
+const handlePdfToImages = async () => {
+  if (!selectedFile) {
+    toast.error('❌ Vui lòng upload file PDF trước!');
+    return;
+  }
+
+  await handleConversion({
+    operation: 'PDF to Images',
+    endpoint: '/documents/pdf-to-images',
+    file: selectedFile,
+    additionalData: { format: imageFormat },
+    outputFilename: selectedFile.name.replace('.pdf', `_images.zip`),
+    technology: 'pdf2image',
+    validateFileType: 'pdf',
+  });
+  
+  setPdfOperation(null);
+};

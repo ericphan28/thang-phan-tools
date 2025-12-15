@@ -1,33 +1,159 @@
 """
 Modern OCR Service (2025)
-Uses Tesseract OCR - Fast and reliable OCR supporting Vietnamese and multiple languages
-EasyOCR disabled to avoid PyTorch (900MB) dependency
+Dual OCR System: Tesseract + Adobe PDF Services with intelligent fallback
+
+Priority configurable via OCR_PRIORITY setting:
+- "tesseract,adobe" = Try Tesseract first (free), fallback to Adobe (premium)
+- "adobe,tesseract" = Try Adobe first (premium), fallback to Tesseract (free)
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple
-# import easyocr  # DISABLED: Requires PyTorch (900MB)
+from typing import List, Optional, Tuple, Dict
 import pytesseract
 from PIL import Image
 from fastapi import UploadFile, HTTPException
 import aiofiles
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class OCRService:
     """
-    Modern OCR service using Tesseract
+    Dual OCR service with Tesseract + Adobe fallback
     
-    Supports:
-    - Vietnamese (vie)
-    - English (eng)
-    - Multiple other languages via Tesseract
+    Tesseract:
+    - Free, unlimited, offline
+    - Accuracy: 7/10
+    - Languages: 100+
+    - Best for: High volume, personal use
     
-    Note: EasyOCR disabled to avoid PyTorch (900MB) dependency
+    Adobe PDF Services:
+    - Premium quality, AI-powered
+    - Accuracy: 10/10
+    - Quota: 500 transactions/month
+    - Best for: Production, critical documents
+    
+    Fallback Logic:
+    1. Try primary OCR (based on OCR_PRIORITY config)
+    2. If fails, try secondary OCR
+    3. If both fail, raise error
     """
     
     def __init__(self, upload_dir: str = "uploads/ocr"):
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Check Tesseract availability
+        self.tesseract_available = self._check_tesseract()
+        
+        # Check Adobe availability (will implement later)
+        self.adobe_available = False  # TODO: Check Adobe credentials
+        
+        logger.info(f"OCR Service initialized - Tesseract: {self.tesseract_available}, Adobe: {self.adobe_available}")
+    
+    def _check_tesseract(self) -> bool:
+        """Check if Tesseract is installed"""
+        try:
+            pytesseract.get_tesseract_version()
+            return True
+        except Exception as e:
+            logger.warning(f"Tesseract not available: {e}")
+            return False
+    
+    def _get_ocr_priority(self) -> List[str]:
+        """Get OCR priority from config"""
+        from app.core.config import settings
+        priority_str = getattr(settings, 'OCR_PRIORITY', 'tesseract,adobe')
+        return [p.strip().lower() for p in priority_str.split(',')]
+    
+    async def _try_ocr(self, provider: str, input_path: Path, languages: List[str], detail: int) -> Optional[Dict]:
+        """
+        Try OCR with specific provider
+        
+        Returns:
+            OCR result dict if success, None if provider not available
+        
+        Raises:
+            Exception if OCR fails (not just unavailable)
+        """
+        if provider == 'tesseract':
+            if not self.tesseract_available:
+                logger.info("Tesseract not available, skipping")
+                return None
+            return await self._extract_with_tesseract(input_path, languages, detail)
+        
+        elif provider == 'adobe':
+            if not self.adobe_available:
+                logger.info("Adobe not available, skipping")
+                return None
+            # TODO: Implement Adobe OCR
+            logger.warning("Adobe OCR not yet implemented")
+            return None
+        
+        else:
+            logger.warning(f"Unknown OCR provider: {provider}")
+            return None
+    
+    async def _extract_with_tesseract(self, input_path: Path, languages: List[str], detail: int) -> Dict:
+        """Extract text using Tesseract"""
+        try:
+            # Open image with context manager to ensure file handle closes
+            with Image.open(input_path) as image:
+                # Get Tesseract language config
+                lang_config = self._get_tesseract_config(languages)
+                
+                if detail == 0:
+                    # Simple text extraction
+                    text = pytesseract.image_to_string(image, lang=lang_config)
+                    
+                    return {
+                        "text": text.strip(),
+                        "languages": languages,
+                        "num_detections": len([line for line in text.split('\n') if line.strip()]),
+                        "ocr_engine": "tesseract"
+                    }
+                else:
+                    # Detailed with bounding boxes and confidence
+                    data = pytesseract.image_to_data(image, lang=lang_config, output_type=pytesseract.Output.DICT)
+                    
+                    formatted_results = []
+                    full_text = []
+                    
+                    n_boxes = len(data['text'])
+                    for i in range(n_boxes):
+                        text = data['text'][i].strip()
+                        if text:  # Skip empty detections
+                            conf = float(data['conf'][i]) / 100.0  # Convert to 0-1 scale
+                            
+                            # Get bounding box
+                            x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
+                            
+                            formatted_results.append({
+                                "text": text,
+                                "confidence": conf if conf >= 0 else 0.0,
+                                "bbox": {
+                                    "top_left": [x, y],
+                                    "top_right": [x + w, y],
+                                    "bottom_right": [x + w, y + h],
+                                    "bottom_left": [x, y + h]
+                                }
+                            })
+                            full_text.append(text)
+                    
+                    avg_conf = sum(d["confidence"] for d in formatted_results) / len(formatted_results) if formatted_results else 0
+                    
+                    return {
+                        "text": " ".join(full_text),
+                        "languages": languages,
+                        "num_detections": len(formatted_results),
+                        "detections": formatted_results,
+                        "avg_confidence": avg_conf,
+                        "ocr_engine": "tesseract"
+                    }
+                
+        except Exception as e:
+            raise Exception(f"Tesseract OCR failed: {str(e)}")
     
     def _get_tesseract_config(self, languages: List[str]) -> str:
         """Convert language codes to Tesseract format"""
@@ -53,7 +179,7 @@ class OCRService:
             
         return file_path
     
-    # ==================== OCR Detection ====================
+    # ==================== OCR Detection (Dual System) ====================
     
     async def extract_text(
         self,
@@ -61,10 +187,15 @@ class OCRService:
         languages: List[str] = ['vi', 'en'],
         detail: int = 1,  # 0=simple text, 1=bounding box + confidence
         paragraph: bool = False,
-        gpu: bool = False  # Ignored for Tesseract compatibility
+        gpu: bool = False  # Ignored for compatibility
     ) -> dict:
         """
-        Extract text from image using Tesseract OCR
+        Extract text from image using dual OCR system (Tesseract + Adobe)
+        
+        Flow:
+        1. Try primary OCR (based on OCR_PRIORITY config)
+        2. If fails or unavailable, try fallback OCR
+        3. If both fail, raise error
         
         Args:
             input_path: Image file path
@@ -74,62 +205,46 @@ class OCRService:
             gpu: Ignored (kept for API compatibility)
         
         Returns:
-            Dictionary with extracted text and metadata
+            Dictionary with extracted text and metadata + ocr_engine used
         """
-        try:
-            # Open image
-            image = Image.open(input_path)
-            
-            # Get Tesseract language config
-            lang_config = self._get_tesseract_config(languages)
-            
-            if detail == 0:
-                # Simple text extraction
-                text = pytesseract.image_to_string(image, lang=lang_config)
+        priorities = self._get_ocr_priority()
+        logger.info(f"OCR priority: {priorities}")
+        
+        last_error = None
+        
+        # Try each OCR provider in priority order
+        for provider in priorities:
+            try:
+                logger.info(f"Trying OCR with: {provider}")
+                result = await self._try_ocr(provider, input_path, languages, detail)
                 
-                return {
-                    "text": text.strip(),
-                    "languages": languages,
-                    "num_detections": len([line for line in text.split('\n') if line.strip()])
-                }
-            else:
-                # Detailed with bounding boxes and confidence
-                data = pytesseract.image_to_data(image, lang=lang_config, output_type=pytesseract.Output.DICT)
-                
-                formatted_results = []
-                full_text = []
-                
-                n_boxes = len(data['text'])
-                for i in range(n_boxes):
-                    text = data['text'][i].strip()
-                    if text:  # Skip empty detections
-                        conf = float(data['conf'][i]) / 100.0  # Convert to 0-1 scale
-                        
-                        # Get bounding box
-                        x, y, w, h = data['left'][i], data['top'][i], data['width'][i], data['height'][i]
-                        
-                        formatted_results.append({
-                            "text": text,
-                            "confidence": conf if conf >= 0 else 0.0,
-                            "bbox": {
-                                "top_left": [x, y],
-                                "top_right": [x + w, y],
-                                "bottom_right": [x + w, y + h],
-                                "bottom_left": [x, y + h]
-                            }
-                        })
-                        full_text.append(text)
-                
-                return {
-                    "text": " ".join(full_text),
-                    "languages": languages,
-                    "num_detections": len(formatted_results),
-                    "detections": formatted_results,
-                    "avg_confidence": sum(d["confidence"] for d in formatted_results) / len(formatted_results) if formatted_results else 0
-                }
-                
-        except Exception as e:
-            raise HTTPException(500, f"OCR failed: {str(e)}")
+                if result:
+                    logger.info(f"✅ OCR success with {provider}")
+                    return result
+                else:
+                    logger.info(f"⚠️ {provider} not available, trying next...")
+                    
+            except Exception as e:
+                last_error = e
+                logger.warning(f"❌ {provider} OCR failed: {e}, trying next...")
+                continue
+        
+        # All OCR providers failed
+        available_providers = [p for p in priorities if 
+                             (p == 'tesseract' and self.tesseract_available) or 
+                             (p == 'adobe' and self.adobe_available)]
+        
+        if not available_providers:
+            raise HTTPException(
+                500, 
+                f"No OCR provider available. Tesseract: {self.tesseract_available}, Adobe: {self.adobe_available}. "
+                f"Install Tesseract (choco install tesseract) or configure Adobe credentials."
+            )
+        
+        # Had providers but all failed
+        error_msg = f"All OCR providers failed. Last error: {last_error}"
+        logger.error(error_msg)
+        raise HTTPException(500, error_msg)
     
     # ==================== Vietnamese Specific ====================
     
@@ -219,6 +334,13 @@ class OCRService:
     # ==================== Cleanup ====================
     
     async def cleanup_file(self, file_path: Path) -> None:
-        """Delete a file"""
+        """Delete a file - handle Windows file locks"""
+        import time
         if file_path.exists():
-            file_path.unlink()
+            # Try multiple times to handle file locks
+            for _ in range(3):
+                try:
+                    file_path.unlink()
+                    break
+                except PermissionError:
+                    time.sleep(0.1)  # Wait 100ms

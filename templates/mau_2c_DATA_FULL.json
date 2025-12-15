@@ -1,0 +1,203 @@
+{
+  "_comment": "JSON HOÀN CHỈNH cho Mẫu 2C - 60+ fields - Bao gồm CẢ dữ liệu bảng",
+  
+  "_section_1": "=== HEADER - MỤC TIÊU ĐỀ ===",
+  "tinh": "Bình Dương",
+  "don_vi_truc_thuoc": "UBND Thành phố Thủ Dầu Một",
+  "don_vi_co_so": "Phòng Nội vụ",
+  "so_hieu": "BD-NV-2024-001",
+  
+  "_section_2": "=== MỤC 1-3: THÔNG TIN CƠ BẢN ===",
+  "ho_ten": "Nguyễn Văn An",
+  "gioi_tinh": "Nam",
+  "ten_goi_khac": "An",
+  
+  "cap_uy_hien_tai": "Chi bộ Phòng Nội vụ",
+  "cap_uy_kiem": "Không",
+  "chuc_vu_full": "Chuyên viên - Phòng Nội vụ UBND TP Thủ Dầu Một",
+  "phu_cap_chuc_vu": "0.2 (hệ số)",
+  
+  "_section_3": "=== MỤC 4-7: NGÀY SINH, NƠI Ở ===",
+  "ngay": "15",
+  "thang": "08",
+  "nam": "1997",
+  "noi_sinh": "Phường Phú Hòa, TP Thủ Dầu Một, Bình Dương",
+  
+  "que_quan_xa": "Xã Bình An",
+  "que_quan_huyen": "Huyện Dĩ An",
+  "que_quan_tinh": "Bình Dương",
+  
+  "noi_o_hien_nay": "123/45 Đại lộ Bình Dương, Phường Phú Lợi, TP Thủ Dầu Một, Bình Dương",
+  "dien_thoai": "0909.123.456",
+  "email": "nguyenvanan@thuadaumont.gov.vn",
+  
+  "_section_4": "=== MỤC 8-11: DÂN TỘC, THÀNH PHẦN ===",
+  "dan_toc": "Kinh",
+  "ton_giao": "Phật giáo",
+  "thanh_phan_xuat_than": "Nông dân",
+  "nghe_nghiep_ban_than": "Sinh viên (trước khi tuyển dụng)",
+  
+  "_section_5": "=== MỤC 12-13: TUYỂN DỤNG ===",
+  "ngay_tuyen_dung": "01/09/2019",
+  "co_quan_tuyen_dung": "UBND TP Thủ Dầu Một, Bình Dương",
+  "ngay_vao_co_quan": "15/09/2019",
+  "ngay_tham_gia_cach_mang": "Không",
+  
+  "_section_6": "=== MỤC 14-16: ĐẢNG, ĐOÀN THỂ, QUÂN ĐỘI ===",
+  "ngay_vao_dang": "15/05/2022",
+  "ngay_chinh_thuc_dang": "15/05/2023",
+  "ngay_tham_gia_to_chuc": "Đoàn TNCS HCM: 15/09/2012; Công đoàn: 01/10/2019",
+  "ngay_nhap_ngu": "Không",
+  "ngay_xuat_ngu": "Không",
+  "quan_ham": "Không",
+  
+  "_section_7": "=== MỤC 17: TRÌNH ĐỘ HỌC VẤN ===",
+  "trinh_do_giao_duc_pho_thong": "12/12",
+  "hoc_ham_hoc_vi": "Cử nhân Luật, Đại học Luật TP.HCM, năm 2019, chuyên ngành Luật Kinh tế",
+  "ly_luan_chinh_tri": "Trung cấp LLCT (2021)",
+  "ngoai_ngu": "Tiếng Anh B1 (TOEIC 550 điểm)",
+  "quan_ly_nha_nuoc": "Chưa có",
+  "tin_hoc": "Chứng chỉ Tin học văn phòng (MOS Word, Excel)",
+  
+  "_section_8": "=== MỤC 18-21: CÔNG TÁC, NGẠCH LƯƠNG ===",
+  "cong_tac_chinh": "Thẩm định hồ sơ tuyển dụng, bổ nhiệm công chức, viên chức",
+  "ngach_cong_chuc": "Chuyên viên",
+  "ma_ngach": "01.003",
+  "bac_luong": "3",
+  "he_so_luong": "2.34",
+  "tu_thang_nam": "10/2022",
+  
+  "danh_hieu": "Không",
+  "so_truong_cong_tac": "Công tác văn phòng, soạn thảo văn bản pháp luật",
+  "cong_viec_lau_nhat": "Thẩm định hồ sơ tuyển dụng, bổ nhiệm (3 năm)",
+  
+  "_section_9": "=== MỤC 22-25: KHEN THƯỞNG, SỨC KHỎE ===",
+  "khen_thuong": "Giấy khen của Giám đốc Sở Nội vụ tỉnh Bình Dương năm 2022 (hoàn thành xuất sắc nhiệm vụ)",
+  "ky_luat": "Không",
+  
+  "suc_khoe": "Tốt, không mắc bệnh mãn tính",
+  "chieu_cao": "1m68",
+  "can_nang": "62 kg",
+  "nhom_mau": "O",
+  
+  "so_cmnd": "274123456789",
+  "ngay_cap": "15/01/2015",
+  "noi_cap": "Công an tỉnh Bình Dương",
+  "thuong_binh_loai": "Không",
+  "gia_dinh_liet_si": "Không",
+  
+  "_section_10": "=== MỤC 26-31: GIA ĐÌNH, KINH TẾ ===",
+  "tinh_trang_hon_nhan": "Đã kết hôn",
+  "ten_vo_chong": "Lê Thị Diệu",
+  "nam_sinh_vo_chong": "1998",
+  "que_quan_vo_chong": "Thủ Dầu Một, Bình Dương",
+  "nghe_nghiep_vo_chong": "Giáo viên mầm non",
+  "cho_o_vo_chong": "123/45 Đại lộ Bình Dương, Phường Phú Lợi, TP Thủ Dầu Một",
+  
+  "_section_11": "=== LỊCH SỬ CHÍNH TRỊ (MỤC 28-29) ===",
+  "lich_su_bi_bat": "Không. Bản thân chưa từng bị bắt, bị tù trong lịch sử.",
+  "lam_viec_che_do_cu": "Không. Bản thân không làm việc trong chế độ cũ.",
+  "quan_he_nuoc_ngoai": "Không tham gia và không có quan hệ với tổ chức chính trị, kinh tế, xã hội nào ở nước ngoài.",
+  "than_nhan_nuoc_ngoai": "Không có thân nhân (bố, mẹ, vợ, chồng, con, anh chị em ruột) ở nước ngoài.",
+  
+  "_section_12": "=== KINH TẾ GIA ĐÌNH (MỤC 31) ===",
+  "nguon_thu_luong": "8.500.000 đ/tháng",
+  "nguon_thu_khac": "Không có nguồn thu nhập khác",
+  "nha_o_duoc_cap": "Không",
+  "nha_o_duoc_cap_dien_tich": "0 m²",
+  "nha_o_tu_mua": "Căn hộ chung cư",
+  "nha_o_tu_mua_loai": "Căn hộ chung cư Becamex",
+  "nha_o_tu_mua_dien_tich": "65 m²",
+  "dat_o_duoc_cap": "0 m²",
+  "dat_o_tu_mua": "0 m²",
+  "dat_san_xuat": "Không có đất sản xuất, kinh doanh",
+  
+  "_section_13": "=== CHỮ KÝ ===",
+  "ngay_ky": "20",
+  "thang_ky": "11",
+  "nam_ky": "2024",
+  
+  "_comment_bang": "=== DỮ LIỆU CHO 5 BẢNG ===",
+  
+  "dao_tao": [
+    {
+      "ten_truong": "Đại học Luật TP. Hồ Chí Minh",
+      "nganh_hoc": "Luật Kinh tế",
+      "thoi_gian": "2015 - 2019",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân Luật"
+    },
+    {
+      "ten_truong": "Trường Chính trị Bình Dương",
+      "nganh_hoc": "Lý luận chính trị",
+      "thoi_gian": "2020 - 2021",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ Trung cấp LLCT"
+    }
+  ],
+  
+  "cong_tac": [
+    {
+      "thoi_gian": "09/2019 - 12/2021",
+      "chuc_vu_don_vi": "Chuyên viên - Phòng Nội vụ UBND TP Thủ Dầu Một (Bậc 1, hệ số 2.10)"
+    },
+    {
+      "thoi_gian": "01/2022 - nay",
+      "chuc_vu_don_vi": "Chuyên viên - Phòng Nội vụ UBND TP Thủ Dầu Một (Bậc 3, hệ số 2.34)"
+    }
+  ],
+  
+  "gia_dinh": [
+    {
+      "ho_ten": "Trần Văn Bình",
+      "nam_sinh": "1970",
+      "thong_tin": "Nông dân, xã Bình An, huyện Dĩ An, Bình Dương. Đang canh tác tại quê nhà"
+    },
+    {
+      "ho_ten": "Nguyễn Thị Cúc",
+      "nam_sinh": "1972",
+      "thong_tin": "Nội trợ, xã Bình An, huyện Dĩ An, Bình Dương. Ở quê nhà"
+    },
+    {
+      "ho_ten": "Lê Thị Diệu",
+      "nam_sinh": "1998",
+      "thong_tin": "Giáo viên mầm non, Trường MN Hoa Mai, Thủ Dầu Một. Đang công tác"
+    },
+    {
+      "ho_ten": "Trần Văn Em",
+      "nam_sinh": "1995",
+      "thong_tin": "Công nhân, Công ty TNHH Samsung Việt Nam. Đang làm việc tại KCN Việt Nam - Singapore"
+    }
+  ],
+  
+  "gia_dinh_vo_chong": [
+    {
+      "ho_ten": "Lê Văn Phúc",
+      "nam_sinh": "1968",
+      "thong_tin": "Thợ hàn, tự do. Đang sinh sống tại Thủ Dầu Một"
+    },
+    {
+      "ho_ten": "Trần Thị Giang",
+      "nam_sinh": "1970",
+      "thong_tin": "Bán hàng chợ Bình Dương. Đang kinh doanh nhỏ"
+    }
+  ],
+  
+  "luong": [
+    {
+      "thang_nam": "10/2019",
+      "ngach_bac": "Chuyên viên/Bậc 1",
+      "he_so": "2.10"
+    },
+    {
+      "thang_nam": "10/2021",
+      "ngach_bac": "Chuyên viên/Bậc 2",
+      "he_so": "2.22"
+    },
+    {
+      "thang_nam": "10/2022",
+      "ngach_bac": "Chuyên viên/Bậc 3",
+      "he_so": "2.34"
+    }
+  ]
+}

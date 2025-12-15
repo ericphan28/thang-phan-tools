@@ -1,0 +1,17 @@
+{
+  "celebrant": {
+    "name": "Bé Minh An",
+    "age": "5"
+  },
+  
+  "event": {
+    "date": "Saturday, December 15th, 2024",
+    "time": "2:00 PM - 5:00 PM",
+    "venue": "KidZania Aeon Mall, 27 Cổ Linh, Long Biên, Hà Nội"
+  },
+  
+  "contact": {
+    "phone": "0987 654 321",
+    "email": "chuminhan@gmail.com"
+  }
+}

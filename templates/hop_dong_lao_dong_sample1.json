@@ -1,0 +1,68 @@
+{
+  "contractNumber": "HĐLĐ-2024-001",
+  "signDate": "01/12/2024",
+  
+  "company": {
+    "name": "CÔNG TY TNHH CÔNG NGHỆ VIETNAM TECH",
+    "address": "Tầng 15, Tòa nhà Keangnam, Phạm Hùng, Cầu Giấy, Hà Nội",
+    "phone": "024 3768 9999",
+    "taxId": "0123456789",
+    "representative": "Nguyễn Văn A"
+  },
+  
+  "employee": {
+    "fullName": "Trần Thị Bình",
+    "birthDate": "15/08/1995",
+    "idNumber": "034095001234",
+    "address": "Số 123, Phố Huế, Hai Bà Trưng, Hà Nội",
+    "phone": "0912 345 678",
+    "email": "tranbinh@email.com"
+  },
+  
+  "position": {
+    "title": "Lập Trình Viên Senior",
+    "department": "Phòng Phát Triển Phần Mềm",
+    "startDate": "01/12/2024",
+    "contractType": "Hợp đồng không xác định thời hạn"
+  },
+  
+  "salary": {
+    "base": "25.000.000",
+    "allowance": "5.000.000",
+    "total": "30.000.000"
+  },
+  
+  "tasks": [
+    {
+      "name": "Phát triển và bảo trì hệ thống",
+      "description": "Phát triển các tính năng mới, sửa lỗi, tối ưu hóa hiệu suất hệ thống backend và frontend"
+    },
+    {
+      "name": "Review code và mentor junior",
+      "description": "Đánh giá code của đồng nghiệp, hướng dẫn và đào tạo nhân viên mới"
+    },
+    {
+      "name": "Nghiên cứu công nghệ mới",
+      "description": "Cập nhật và nghiên cứu các công nghệ, framework mới để áp dụng vào dự án"
+    },
+    {
+      "name": "Tham gia họp dự án",
+      "description": "Họp daily standup, sprint planning, retrospective cùng team"
+    }
+  ],
+  
+  "benefits": [
+    "Bảo hiểm xã hội, y tế, thất nghiệp đầy đủ theo luật",
+    "Bảo hiểm sức khỏe cao cấp Bảo Việt",
+    "Thưởng hiệu suất hàng quý (10-30% lương)",
+    "Thưởng Tết Nguyên Đán tối thiểu 2 tháng lương",
+    "Tăng lương định kỳ 6 tháng/lần dựa trên năng lực",
+    "Du lịch công ty 1-2 lần/năm (trong nước và nước ngoài)",
+    "Team building hàng tháng",
+    "Hỗ trợ laptop, màn hình làm việc",
+    "Nghỉ phép 12 ngày/năm + 3 ngày phép năm mới",
+    "Thưởng sinh nhật, hiếu hỉ",
+    "Hỗ trợ khám sức khỏe định kỳ hàng năm",
+    "Môi trường làm việc trẻ trung, năng động"
+  ]
+}

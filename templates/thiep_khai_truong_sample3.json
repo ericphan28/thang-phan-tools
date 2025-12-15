@@ -1,0 +1,24 @@
+{
+  "guest": {
+    "name": "Ông Phạm Minh Tuấn",
+    "title": "Chủ tịch Hội Doanh Nghiệp Trẻ Việt Nam"
+  },
+  
+  "business": {
+    "name": "TRUNG TÂM ANH NGỮ SMART KIDS",
+    "slogan": "Học vui - Học thông minh - Học hiệu quả"
+  },
+  
+  "venue": {
+    "address": "Tòa Golden Palace, 169 Nguyễn Ngọc Vũ, Cầu Giấy, Hà Nội"
+  },
+  
+  "event": {
+    "datetime": "09:30, Thứ Sáu, ngày 15/12/2024"
+  },
+  
+  "contact": {
+    "phone": "0988 777 666",
+    "email": "hello@smartkids.edu.vn"
+  }
+}

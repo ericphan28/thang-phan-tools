@@ -1,0 +1,134 @@
+{
+  "co_quan_quan_ly": "Sở Nội vụ Thành phố Hồ Chí Minh",
+  "don_vi_su_dung": "Phòng Tài chính - Kế toán",
+  "so_hieu": "SYL-2024-001",
+  "ma_so_dinh_danh": "0123456789",
+  "ho_ten": "Nguyễn Văn An",
+  "ngay_sinh": "15/03/1996",
+  "gioi_tinh": "Nam",
+  "noi_sinh": "Quận 1, TP. Hồ Chí Minh",
+  "que_quan": "Huyện Củ Chi, TP. Hồ Chí Minh",
+  "dan_toc": "Kinh",
+  "ton_giao": "Không",
+  "cccd": "079096001234",
+  "cccd_ngay_cap": "01/01/2021",
+  "sdt": "0901234567",
+  "so_bhxh": "1234567890",
+  "so_bhyt": "DN1234567890123",
+  "noi_o_hien_nay": "123 Nguyễn Văn Linh, Phường Tân Phú, Quận 7, TP. Hồ Chí Minh",
+  "thanh_phan_xuat_than": "Công nhân",
+  "nghe_nghiep_truoc": "Sinh viên",
+  "ngay_tuyen_dung": "01/08/2018",
+  "co_quan_tuyen_dung": "Sở Tài chính TP. Hồ Chí Minh",
+  "ngay_vao_co_quan": "15/08/2018",
+  "ngay_vao_dang": "Chưa vào Đảng",
+  "ngay_chinh_thuc": "",
+  
+  "dao_tao_chuyen_mon": [
+    {
+      "ten_truong": "Đại học Kinh tế TP. Hồ Chí Minh",
+      "chuyen_nganh": "Kế toán - Kiểm toán",
+      "tu_nam": "2014",
+      "den_nam": "2018",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân"
+    }
+  ],
+  
+  "ly_luan_chinh_tri": [
+    {
+      "ten_chuong_trinh": "Trung cấp Lý luận chính trị",
+      "co_so_dao_tao": "Trường Chính trị TP. Hồ Chí Minh",
+      "nam_tot_nghiep": "2019"
+    }
+  ],
+  
+  "ngoai_ngu": [
+    {
+      "ten_ngoai_ngu": "Tiếng Anh",
+      "trinh_do": "B1",
+      "chung_chi": "TOEIC 650"
+    }
+  ],
+  
+  "tin_hoc": [
+    {
+      "trinh_do": "Tin học văn phòng",
+      "chung_chi": "MOS Excel 2016 Specialist"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "08/2018 - 12/2020",
+      "chuc_danh": "Chuyên viên",
+      "co_quan": "Phòng Kế toán, Sở Tài chính TP.HCM"
+    },
+    {
+      "thoi_gian": "01/2021 - nay",
+      "chuc_danh": "Chuyên viên chính",
+      "co_quan": "Phòng Tài chính - Kế toán, Sở Nội vụ TP.HCM"
+    }
+  ],
+  
+  "khen_thuong": [
+    {
+      "nam": "2020",
+      "hinh_thuc": "Bằng khen",
+      "ly_do": "Hoàn thành xuất sắc nhiệm vụ năm 2020",
+      "co_quan": "Chủ tịch UBND TP.HCM"
+    }
+  ],
+  
+  "ky_luat": [],
+  
+  "gia_dinh": [
+    {
+      "quan_he": "Cha",
+      "ho_ten": "Nguyễn Văn Bình",
+      "nam_sinh": "1970",
+      "que_quan": "Củ Chi, TP.HCM",
+      "nghe_nghiep": "Nông dân",
+      "cho_hien_nay": "Đang sinh sống tại quê nhà"
+    },
+    {
+      "quan_he": "Mẹ",
+      "ho_ten": "Trần Thị Cúc",
+      "nam_sinh": "1972",
+      "que_quan": "Củ Chi, TP.HCM",
+      "nghe_nghiep": "Nội trợ",
+      "cho_hien_nay": "Đang sinh sống tại quê nhà"
+    },
+    {
+      "quan_he": "Vợ",
+      "ho_ten": "Lê Thị Diệu",
+      "nam_sinh": "1997",
+      "que_quan": "Quận 7, TP.HCM",
+      "nghe_nghiep": "Giáo viên tiểu học",
+      "cho_hien_nay": "Đang công tác tại Trường Tiểu học Tân Phú"
+    },
+    {
+      "quan_he": "Con",
+      "ho_ten": "Nguyễn Văn Em",
+      "nam_sinh": "2022",
+      "que_quan": "TP.HCM",
+      "nghe_nghiep": "Học sinh",
+      "cho_hien_nay": "Đang học mẫu giáo"
+    }
+  ],
+  
+  "tinh_hinh_kinh_te": {
+    "luong_thang": "12.500.000 VNĐ",
+    "thu_nhap_khac": "Không",
+    "nha_o": "Thuê căn hộ chung cư",
+    "dat_o": "Không có",
+    "dat_san_xuat": "Không có"
+  },
+  
+  "danh_gia_to_chuc": {
+    "nhan_xet": "Đồng chí có ý thức tổ chức kỷ luật tốt, nhiệt tình trong công việc, có năng lực chuyên môn vững vàng. Hoàn thành tốt mọi nhiệm vụ được giao.",
+    "phan_loai": "Hoàn thành tốt nhiệm vụ",
+    "ngay_danh_gia": "15/12/2023",
+    "nguoi_danh_gia": "Trưởng Phòng Tài chính - Kế toán"
+  }
+}

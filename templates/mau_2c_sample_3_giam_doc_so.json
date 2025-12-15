@@ -1,0 +1,258 @@
+{
+  "_comment": "Mẫu 3: Cán bộ cao cấp - Giám đốc Sở cấp tỉnh",
+  
+  "tinh": "Bà Rịa - Vũng Tàu",
+  "don_vi_truc_thuoc": "UBND tỉnh Bà Rịa - Vũng Tàu",
+  "don_vi_co_so": "Sở Tài chính",
+  "so_hieu_can_bo": "BRVT-TC-89-123",
+  
+  "ho_ten": "Võ Minh Châu",
+  "gioi_tinh": "Nam",
+  "ten_goi_khac": "Không",
+  "cap_uy_hien_tai": "Ban Chấp hành Đảng bộ tỉnh BR-VT (Ủy viên BCH)",
+  "cap_uy_kiem": "Bí thư Chi bộ Sở Tài chính",
+  "chuc_vu": "Giám đốc Sở Tài chính, Ủy viên BCH Đảng bộ tỉnh, Bí thư Chi bộ Sở",
+  "phu_cap_chuc_vu": "1.0 (hệ số)",
+  
+  "ngay_sinh": "25",
+  "thang_sinh": "12",
+  "nam_sinh": "1972",
+  "noi_sinh": "Xã Long Sơn, Huyện Long Điền, Bà Rịa - Vũng Tàu",
+  
+  "que_quan_xa": "Xã Long Sơn",
+  "que_quan_huyen": "Huyện Long Điền",
+  "que_quan_tinh": "Bà Rịa - Vũng Tàu",
+  
+  "noi_o_hien_nay": "Biệt thự số 18, Khu đô thị Phương Trang, Phường 1, TP Vũng Tàu, BR-VT",
+  "dien_thoai": "0903567890",
+  
+  "dan_toc": "Kinh",
+  "ton_giao": "Không",
+  "thanh_phan_xuat_than": "Cán bộ, công chức",
+  
+  "nghe_nghiep_truoc": "Giảng viên Đại học Kinh tế TP. HCM",
+  "ngay_tuyen_dung": "01/08/1994",
+  "co_quan_tuyen_dung": "Sở Tài chính Bà Rịa - Vũng Tàu",
+  
+  "ngay_vao_co_quan": "15/08/1994",
+  "ngay_tham_gia_cach_mang": "Không",
+  
+  "ngay_vao_dang": "15/05/1998",
+  "ngay_chinh_thuc_dang": "15/05/1999",
+  
+  "to_chuc_chinh_tri_xa_hoi": "Đoàn TNCS HCM: 15/05/1987; Công đoàn: 01/09/1994; Hội Kinh tế học VN: 2005",
+  
+  "ngay_nhap_ngu": "15/09/1990",
+  "ngay_xuat_ngu": "15/09/1992",
+  "quan_ham_chuc_vu": "Trung úy, Tổ trưởng (1992)",
+  
+  "hoc_van_pho_thong": "12/12",
+  "hoc_ham_hoc_vi": "Tiến sĩ Kinh tế, năm 2010",
+  "ly_luan_chinh_tri": "Cao cấp LLCT (2005)",
+  "ngoai_ngu": "Tiếng Anh C2 (IELTS 8.5); Tiếng Pháp B2 (DELF); Tiếng Nhật N3",
+  
+  "cong_tac_chinh": "Quản lý, điều hành Sở Tài chính tỉnh",
+  "ngach_cong_chuc": "Chuyên viên cao cấp",
+  "ma_ngach": "01.006",
+  "bac_luong": "8",
+  "he_so_luong": "6.20",
+  "thang_huong_luong": "01/2020",
+  
+  "danh_hieu": "Nhà giáo ưu tú (2008)",
+  "so_truong": "Quản lý tài chính công, chính sách tài khóa, đầu tư công",
+  "cong_viec_lam_lau_nhat": "Quản lý ngân sách và tài chính công (25 năm)",
+  
+  "khen_thuong": "Bằng khen Thủ tướng CP (2005, 2015); Huân chương Lao động hạng Ba (2010); Huân chương Lao động hạng Nhì (2018); Huân chương Lao động hạng Nhất (2023); Chiến sĩ thi đua toàn quốc (2020)",
+  "ky_luat": "Không",
+  
+  "suc_khoe": "Tốt",
+  "chieu_cao": "1m72",
+  "can_nang": "68",
+  "nhom_mau": "B",
+  
+  "so_cmnd": "272567890",
+  "thuong_binh_loai": "Không",
+  "gia_dinh_liet_si": "Không",
+  
+  "dao_tao": [
+    {
+      "ten_truong": "Đại học Kinh tế TP. Hồ Chí Minh",
+      "nganh_hoc": "Tài chính - Tín dụng",
+      "thoi_gian": "1990 - 1994",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân Kinh tế (Loại Giỏi)"
+    },
+    {
+      "ten_truong": "Đại học Kinh tế TP. Hồ Chí Minh",
+      "nganh_hoc": "Tài chính công",
+      "thoi_gian": "2000 - 2003",
+      "hinh_thuc": "Tại chức",
+      "van_bang": "Thạc sĩ Kinh tế"
+    },
+    {
+      "ten_truong": "Đại học Kinh tế Quốc dân Hà Nội",
+      "nganh_hoc": "Tài chính công và Chính sách tài khóa",
+      "thoi_gian": "2006 - 2010",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Tiến sĩ Kinh tế"
+    },
+    {
+      "ten_truong": "Học viện Chính trị Quốc gia HCM",
+      "nganh_hoc": "Lý luận chính trị",
+      "thoi_gian": "2004 - 2005",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ Cao cấp LLCT"
+    },
+    {
+      "ten_truong": "Học viện Hành chính Quốc gia",
+      "nganh_hoc": "Quản lý nhà nước cấp Vụ",
+      "thoi_gian": "2012",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ QLNN cấp Vụ"
+    },
+    {
+      "ten_truong": "Học viện Hành chính Quốc gia",
+      "nganh_hoc": "Lãnh đạo, quản lý cấp Sở",
+      "thoi_gian": "2017",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ cấp Sở"
+    },
+    {
+      "ten_truong": "Đại học Harvard (Hoa Kỳ)",
+      "nganh_hoc": "Chính sách công và Quản trị công",
+      "thoi_gian": "2014 - 2015",
+      "hinh_thuc": "Học bổng ngắn hạn",
+      "van_bang": "Chứng chỉ Executive Education"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "08/1994 - 12/1998",
+      "chuc_danh_don_vi": "Chuyên viên - Phòng Ngân sách, Sở Tài chính BR-VT"
+    },
+    {
+      "thoi_gian": "01/1999 - 12/2003",
+      "chuc_danh_don_vi": "Chuyên viên chính - Phòng Ngân sách, Sở Tài chính BR-VT"
+    },
+    {
+      "thoi_gian": "01/2004 - 06/2008",
+      "chuc_danh_don_vi": "Phó Trưởng phòng Ngân sách, Sở Tài chính BR-VT"
+    },
+    {
+      "thoi_gian": "07/2008 - 12/2012",
+      "chuc_danh_don_vi": "Trưởng phòng Ngân sách, Sở Tài chính BR-VT"
+    },
+    {
+      "thoi_gian": "01/2013 - 06/2017",
+      "chuc_danh_don_vi": "Phó Giám đốc Sở Tài chính BR-VT, Phó Bí thư Chi bộ"
+    },
+    {
+      "thoi_gian": "07/2017 - nay",
+      "chuc_danh_don_vi": "Giám đốc Sở Tài chính BR-VT, Ủy viên BCH Đảng bộ tỉnh, Bí thư Chi bộ Sở"
+    }
+  ],
+  
+  "gia_dinh_ban_than": [
+    {
+      "quan_he": "Bố",
+      "ho_ten": "Võ Văn An",
+      "nam_sinh": "1948",
+      "thong_tin": "Cán bộ Bộ Tài chính về hưu (nguyên Phó Cục trưởng Cục Thuế BR-VT). Đã qua đời năm 2020"
+    },
+    {
+      "quan_he": "Mẹ",
+      "ho_ten": "Nguyễn Thị Bích",
+      "nam_sinh": "1950",
+      "thong_tin": "Giáo viên THPT về hưu. Đã nghỉ hưu 2010, hiện ở cùng con trai"
+    },
+    {
+      "quan_he": "Vợ",
+      "ho_ten": "Lê Thị Diệp",
+      "nam_sinh": "1975",
+      "thong_tin": "Phó Giám đốc Ngân hàng TMCP Công thương VN Chi nhánh BR-VT. Đang công tác"
+    },
+    {
+      "quan_he": "Con trai",
+      "ho_ten": "Võ Hoàng Đức",
+      "nam_sinh": "2000",
+      "thong_tin": "Kỹ sư phần mềm, Công ty FPT Software. Đã tốt nghiệp ĐH Bách Khoa TP.HCM, đang làm việc tại TP.HCM"
+    },
+    {
+      "quan_he": "Con gái",
+      "ho_ten": "Võ Minh Giang",
+      "nam_sinh": "2003",
+      "thong_tin": "Sinh viên năm 4, Đại học Ngoại thương Hà Nội, chuyên ngành Tài chính quốc tế"
+    },
+    {
+      "quan_he": "Em trai",
+      "ho_ten": "Võ Minh Hải",
+      "nam_sinh": "1978",
+      "thong_tin": "Phó Giám đốc Sở Kế hoạch và Đầu tư tỉnh Bà Rịa - Vũng Tàu. Đang công tác"
+    }
+  ],
+  
+  "gia_dinh_vo_chong": [
+    {
+      "quan_he": "Bố vợ",
+      "ho_ten": "Lê Văn Phúc",
+      "nam_sinh": "1945",
+      "thong_tin": "Trung tá Quân đội nhân dân VN về hưu. Đã qua đời năm 2018"
+    },
+    {
+      "quan_he": "Mẹ vợ",
+      "ho_ten": "Trần Thị Lan",
+      "nam_sinh": "1948",
+      "thong_tin": "Y tá về hưu. Đã nghỉ hưu 2008, hiện sinh sống tại TP Vũng Tàu"
+    },
+    {
+      "quan_he": "Em vợ",
+      "ho_ten": "Lê Thị Thanh",
+      "nam_sinh": "1980",
+      "thong_tin": "Bác sĩ - Bệnh viện Bà Rịa, Trưởng khoa Sản. Đang công tác"
+    }
+  ],
+  
+  "qua_trinh_luong": [
+    {
+      "thang_nam_1": "08/1994",
+      "ngach_bac_1": "CV/1",
+      "he_so_luong_1": "2.10"
+    },
+    {
+      "thang_nam_2": "01/1999",
+      "ngach_bac_2": "CVC/2",
+      "he_so_luong_2": "2.56"
+    },
+    {
+      "thang_nam_3": "01/2004",
+      "ngach_bac_3": "CVC/5",
+      "he_so_luong_3": "2.93"
+    },
+    {
+      "thang_nam_4": "07/2008",
+      "ngach_bac_4": "CVC/7",
+      "he_so_luong_4": "3.33"
+    },
+    {
+      "thang_nam_5": "01/2013",
+      "ngach_bac_5": "CVCC/3",
+      "he_so_luong_5": "4.98"
+    },
+    {
+      "thang_nam_6": "01/2020",
+      "ngach_bac_6": "CVCC/8",
+      "he_so_luong_6": "6.20"
+    }
+  ],
+  
+  "luong_hang_nam": "Lương cơ bản + phụ cấp chức vụ + phụ cấp khác: ~180.000.000 VNĐ/năm",
+  "nguon_khac": "Thu nhập từ giảng dạy, nghiên cứu khoa học, tư vấn: ~80.000.000 VNĐ/năm",
+  "nha_duoc_cap": "Không",
+  "dien_tich_nha_cap": "0",
+  "nha_tu_mua": "Biệt thự 2 tầng kiên cố, khu đô thị Phương Trang",
+  "dien_tich_nha_mua": "280",
+  "dat_duoc_cap": "0",
+  "dat_tu_mua": "350 (thổ cư có sổ đỏ, kèm biệt thự)",
+  "dat_san_xuat": "2.000m² đất vườn tại xã Long Sơn (trồng nhãn, vải); 500m² đất tại Đà Lạt (nhà nghỉ dưỡng)"
+}

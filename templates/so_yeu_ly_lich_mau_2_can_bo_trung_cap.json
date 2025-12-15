@@ -1,0 +1,186 @@
+{
+  "co_quan_quan_ly": "Sở Nội vụ Thành phố Hà Nội",
+  "don_vi_su_dung": "Phòng Quản lý Công chức - Viên chức",
+  "so_hieu": "SYL-2024-002",
+  "ma_so_dinh_danh": "0987654321",
+  "ho_ten": "Trần Thị Bình",
+  "ngay_sinh": "22/08/1985",
+  "gioi_tinh": "Nữ",
+  "noi_sinh": "Quận Hoàn Kiếm, TP. Hà Nội",
+  "que_quan": "Huyện Thanh Trì, TP. Hà Nội",
+  "dan_toc": "Kinh",
+  "ton_giao": "Công giáo",
+  "cccd": "001085002468",
+  "cccd_ngay_cap": "15/07/2020",
+  "sdt": "0912345678",
+  "so_bhxh": "2468101214",
+  "so_bhyt": "HN2468101214567",
+  "noi_o_hien_nay": "45 Phố Huế, Phường Minh Khai, Quận Hai Bà Trưng, TP. Hà Nội",
+  "thanh_phan_xuat_than": "Trí thức",
+  "nghe_nghiep_truoc": "Giảng viên đại học",
+  "ngay_tuyen_dung": "15/09/2007",
+  "co_quan_tuyen_dung": "Sở Nội vụ TP. Hà Nội",
+  "ngay_vao_co_quan": "01/10/2007",
+  "ngay_vao_dang": "15/05/2012",
+  "ngay_chinh_thuc": "15/05/2013",
+  
+  "dao_tao_chuyen_mon": [
+    {
+      "ten_truong": "Đại học Quốc gia Hà Nội",
+      "chuyen_nganh": "Quản lý công",
+      "tu_nam": "2003",
+      "den_nam": "2007",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân"
+    },
+    {
+      "ten_truong": "Học viện Hành chính Quốc gia",
+      "chuyen_nganh": "Quản lý hành chính nhà nước",
+      "tu_nam": "2015",
+      "den_nam": "2017",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Thạc sĩ"
+    }
+  ],
+  
+  "ly_luan_chinh_tri": [
+    {
+      "ten_chuong_trinh": "Cao cấp Lý luận chính trị",
+      "co_so_dao_tao": "Học viện Chính trị Quốc gia Hồ Chí Minh",
+      "nam_tot_nghiep": "2018"
+    }
+  ],
+  
+  "quan_ly_nha_nuoc": [
+    {
+      "ten_chuong_trinh": "Bồi dưỡng nghiệp vụ quản lý nhà nước ngạch Chuyên viên chính",
+      "co_so_dao_tao": "Học viện Hành chính Quốc gia",
+      "nam_tot_nghiep": "2016"
+    }
+  ],
+  
+  "ngoai_ngu": [
+    {
+      "ten_ngoai_ngu": "Tiếng Anh",
+      "trinh_do": "C1",
+      "chung_chi": "IELTS 7.0"
+    },
+    {
+      "ten_ngoai_ngu": "Tiếng Pháp",
+      "trinh_do": "A2",
+      "chung_chi": "DELF A2"
+    }
+  ],
+  
+  "tin_hoc": [
+    {
+      "trinh_do": "Chứng chỉ ứng dụng CNTT nâng cao",
+      "chung_chi": "IC3 Digital Literacy"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "10/2007 - 12/2010",
+      "chuc_danh": "Chuyên viên",
+      "co_quan": "Phòng Tổ chức cán bộ, Sở Nội vụ Hà Nội"
+    },
+    {
+      "thoi_gian": "01/2011 - 12/2015",
+      "chuc_danh": "Chuyên viên chính",
+      "co_quan": "Phòng Tổ chức cán bộ, Sở Nội vụ Hà Nội"
+    },
+    {
+      "thoi_gian": "01/2016 - 06/2020",
+      "chuc_danh": "Phó trưởng phòng",
+      "co_quan": "Phòng Quản lý CBCC-VC, Sở Nội vụ Hà Nội"
+    },
+    {
+      "thoi_gian": "07/2020 - nay",
+      "chuc_danh": "Trưởng phòng",
+      "co_quan": "Phòng Quản lý CBCC-VC, Sở Nội vụ Hà Nội"
+    }
+  ],
+  
+  "khen_thuong": [
+    {
+      "nam": "2015",
+      "hinh_thuc": "Bằng khen",
+      "ly_do": "Hoàn thành xuất sắc nhiệm vụ 5 năm (2010-2015)",
+      "co_quan": "Giám đốc Sở Nội vụ Hà Nội"
+    },
+    {
+      "nam": "2020",
+      "hinh_thuc": "Huân chương Lao động hạng Ba",
+      "ly_do": "Có thành tích xuất sắc trong công tác quản lý nhà nước",
+      "co_quan": "Chủ tịch nước"
+    },
+    {
+      "nam": "2022",
+      "hinh_thuc": "Chiến sĩ thi đua cấp Bộ",
+      "ly_do": "Thành tích xuất sắc năm 2022",
+      "co_quan": "Bộ Nội vụ"
+    }
+  ],
+  
+  "ky_luat": [],
+  
+  "gia_dinh": [
+    {
+      "quan_he": "Cha",
+      "ho_ten": "Trần Văn Công",
+      "nam_sinh": "1958",
+      "que_quan": "Thanh Trì, Hà Nội",
+      "nghe_nghiep": "Giáo viên THPT về hưu",
+      "cho_hien_nay": "Đã nghỉ hưu, ở cùng con gái"
+    },
+    {
+      "quan_he": "Mẹ",
+      "ho_ten": "Nguyễn Thị Dung",
+      "nam_sinh": "1960",
+      "que_quan": "Hoàn Kiếm, Hà Nội",
+      "nghe_nghiep": "Y tá về hưu",
+      "cho_hien_nay": "Đã nghỉ hưu, ở cùng con gái"
+    },
+    {
+      "quan_he": "Chồng",
+      "ho_ten": "Lê Văn Đức",
+      "nam_sinh": "1984",
+      "que_quan": "Quận Cầu Giấy, Hà Nội",
+      "nghe_nghiep": "Bác sĩ - Bệnh viện Bạch Mai",
+      "cho_hien_nay": "Đang công tác tại Khoa Nội Tổng hợp, BV Bạch Mai"
+    },
+    {
+      "quan_he": "Con trai",
+      "ho_ten": "Lê Minh Em",
+      "nam_sinh": "2012",
+      "que_quan": "Hà Nội",
+      "nghe_nghiep": "Học sinh",
+      "cho_hien_nay": "Học sinh lớp 6, THCS Lương Thế Vinh"
+    },
+    {
+      "quan_he": "Con gái",
+      "ho_ten": "Lê Thu Giang",
+      "nam_sinh": "2015",
+      "que_quan": "Hà Nội",
+      "nghe_nghiep": "Học sinh",
+      "cho_hien_nay": "Học sinh lớp 3, TH Nguyễn Trãi"
+    }
+  ],
+  
+  "tinh_hinh_kinh_te": {
+    "luong_thang": "22.000.000 VNĐ",
+    "phu_cap": "Phụ cấp chức vụ lãnh đạo: 3.500.000 VNĐ/tháng",
+    "thu_nhap_khac": "Thu nhập từ nghiên cứu khoa học: ~30.000.000 VNĐ/năm",
+    "nha_o": "Sở hữu căn hộ chung cư 85m², đường Lê Duẩn, Đống Đa, Hà Nội",
+    "dat_o": "Có 60m² đất thổ cư tại Thanh Trì (nhà ở cha mẹ)",
+    "dat_san_xuat": "Không có"
+  },
+  
+  "danh_gia_to_chuc": {
+    "nhan_xet": "Đồng chí có phẩm chất đạo đức tốt, có năng lực lãnh đạo, quản lý. Tâm huyết với công việc, có tư duy đổi mới, sáng tạo. Luôn hoàn thành xuất sắc nhiệm vụ được giao. Được tập thể tin tưởng, quần chúng yêu mến.",
+    "phan_loai": "Hoàn thành xuất sắc nhiệm vụ",
+    "ngay_danh_gia": "20/12/2023",
+    "nguoi_danh_gia": "Giám đốc Sở Nội vụ TP. Hà Nội"
+  }
+}

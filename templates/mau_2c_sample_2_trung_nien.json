@@ -1,0 +1,229 @@
+{
+  "_comment": "Mẫu 2: Cán bộ trung niên - Phó Trưởng phòng cấp huyện",
+  
+  "tinh": "Đồng Nai",
+  "don_vi_truc_thuoc": "UBND Huyện Long Thành",
+  "don_vi_co_so": "Phòng Tài chính - Kế hoạch",
+  "so_hieu_can_bo": "DN-LT-98-567",
+  
+  "ho_ten": "Nguyễn Thị Bích Hằng",
+  "gioi_tinh": "Nữ",
+  "ten_goi_khac": "Hằng",
+  "cap_uy_hien_tai": "Chi ủy Phòng Tài chính - Kế hoạch",
+  "cap_uy_kiem": "Không",
+  "chuc_vu": "Phó Trưởng phòng Tài chính - Kế hoạch, Ủy viên Ban Thường vụ Chi ủy",
+  "phu_cap_chuc_vu": "0.4 (hệ số)",
+  
+  "ngay_sinh": "08",
+  "thang_sinh": "03",
+  "nam_sinh": "1985",
+  "noi_sinh": "Xã Bình Sơn, Huyện Long Thành, Đồng Nai",
+  
+  "que_quan_xa": "Xã Bình Sơn",
+  "que_quan_huyen": "Huyện Long Thành",
+  "que_quan_tinh": "Đồng Nai",
+  
+  "noi_o_hien_nay": "56 Đường Hùng Vương, Thị trấn Long Thành, Huyện Long Thành, Đồng Nai",
+  "dien_thoai": "0918234567",
+  
+  "dan_toc": "Kinh",
+  "ton_giao": "Không",
+  "thanh_phan_xuat_than": "Cán bộ, công chức",
+  
+  "nghe_nghiep_truoc": "Kế toán viên tại Công ty tư nhân",
+  "ngay_tuyen_dung": "15/08/2007",
+  "co_quan_tuyen_dung": "UBND Huyện Long Thành",
+  
+  "ngay_vao_co_quan": "01/09/2007",
+  "ngay_tham_gia_cach_mang": "Không",
+  
+  "ngay_vao_dang": "10/10/2012",
+  "ngay_chinh_thuc_dang": "10/10/2013",
+  
+  "to_chuc_chinh_tri_xa_hoi": "Đoàn TNCS HCM: 20/11/2000; Công đoàn: 01/09/2007; Hội LHPN: 15/03/2008",
+  
+  "ngay_nhap_ngu": "Không",
+  "ngay_xuat_ngu": "Không",
+  "quan_ham_chuc_vu": "Không",
+  
+  "hoc_van_pho_thong": "12/12",
+  "hoc_ham_hoc_vi": "Thạc sĩ Kinh tế, năm 2015",
+  "ly_luan_chinh_tri": "Cao cấp LLCT (2018)",
+  "ngoai_ngu": "Tiếng Anh C1 (IELTS 7.0); Tiếng Trung HSK 3",
+  
+  "cong_tac_chinh": "Phụ trách công tác kế hoạch đầu tư, thẩm định dự án",
+  "ngach_cong_chuc": "Chuyên viên chính",
+  "ma_ngach": "01.004",
+  "bac_luong": "6",
+  "he_so_luong": "3.00",
+  "thang_huong_luong": "09/2022",
+  
+  "danh_hieu": "Không",
+  "so_truong": "Quản lý tài chính công, thẩm định dự án đầu tư công",
+  "cong_viec_lam_lau_nhat": "Quản lý ngân sách huyện (10 năm)",
+  
+  "khen_thuong": "Bằng khen UBND tỉnh Đồng Nai (2015, 2020); Huân chương Lao động hạng Ba (2022)",
+  "ky_luat": "Không",
+  
+  "suc_khoe": "Bình thường",
+  "chieu_cao": "1m58",
+  "can_nang": "52",
+  "nhom_mau": "A",
+  
+  "so_cmnd": "251234567",
+  "thuong_binh_loại": "Không",
+  "gia_dinh_liet_si": "Không",
+  
+  "dao_tao": [
+    {
+      "ten_truong": "Đại học Kinh tế TP. Hồ Chí Minh",
+      "nganh_hoc": "Kế toán",
+      "thoi_gian": "2003 - 2007",
+      "hinh_thuc": "Chính quy",
+      "van_bang": "Cử nhân Kinh tế"
+    },
+    {
+      "ten_truong": "Đại học Kinh tế TP. Hồ Chí Minh",
+      "nganh_hoc": "Tài chính - Ngân hàng",
+      "thoi_gian": "2013 - 2015",
+      "hinh_thuc": "Tại chức",
+      "van_bang": "Thạc sĩ Kinh tế"
+    },
+    {
+      "ten_truong": "Học viện Chính trị khu vực III",
+      "nganh_hoc": "Lý luận chính trị",
+      "thoi_gian": "2017 - 2018",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ Cao cấp LLCT"
+    },
+    {
+      "ten_truong": "Học viện Hành chính Quốc gia",
+      "nganh_hoc": "Quản lý tài chính công",
+      "thoi_gian": "2019",
+      "hinh_thuc": "Bồi dưỡng",
+      "van_bang": "Chứng chỉ bồi dưỡng nghiệp vụ"
+    }
+  ],
+  
+  "qua_trinh_cong_tac": [
+    {
+      "thoi_gian": "09/2007 - 08/2010",
+      "chuc_danh_don_vi": "Chuyên viên - Phòng Tài chính - Kế hoạch UBND huyện Long Thành"
+    },
+    {
+      "thoi_gian": "09/2010 - 08/2015",
+      "chuc_danh_don_vi": "Chuyên viên chính - Phòng Tài chính - Kế hoạch UBND huyện Long Thành"
+    },
+    {
+      "thoi_gian": "09/2015 - 06/2019",
+      "chuc_danh_don_vi": "Chuyên viên chính, Phó Chủ nhiệm UBKT Chi ủy - Phòng Tài chính - Kế hoạch"
+    },
+    {
+      "thoi_gian": "07/2019 - nay",
+      "chuc_danh_don_vi": "Phó Trưởng phòng Tài chính - Kế hoạch, Ủy viên BTV Chi ủy UBND huyện Long Thành"
+    }
+  ],
+  
+  "gia_dinh_ban_than": [
+    {
+      "quan_he": "Bố",
+      "ho_ten": "Nguyễn Văn Công",
+      "nam_sinh": "1960",
+      "thong_tin": "Cán bộ về hưu (nguyên Phó phòng Nông nghiệp huyện Long Thành). Đã nghỉ hưu năm 2020"
+    },
+    {
+      "quan_he": "Mẹ",
+      "ho_ten": "Trần Thị Dung",
+      "nam_sinh": "1962",
+      "thong_tin": "Giáo viên tiểu học về hưu. Đã nghỉ hưu năm 2022"
+    },
+    {
+      "quan_he": "Chồng",
+      "ho_ten": "Lê Minh Đức",
+      "nam_sinh": "1983",
+      "thong_tin": "Bác sĩ - Bệnh viện Đa khoa Long Thành, Phó Trưởng khoa Nội. Đang công tác"
+    },
+    {
+      "quan_he": "Con trai",
+      "ho_ten": "Lê Hoàng Em",
+      "nam_sinh": "2010",
+      "thong_tin": "Học sinh lớp 8, THCS Long Thành. Đang học tập"
+    },
+    {
+      "quan_he": "Con gái",
+      "ho_ten": "Lê Ngọc Phương",
+      "nam_sinh": "2013",
+      "thong_tin": "Học sinh lớp 5, TH Nguyễn Văn Trỗi. Đang học tập"
+    },
+    {
+      "quan_he": "Em gái",
+      "ho_ten": "Nguyễn Thị Thảo",
+      "nam_sinh": "1990",
+      "thong_tin": "Kế toán trưởng Công ty TNHH XYZ. Đang công tác tại TP. HCM"
+    }
+  ],
+  
+  "gia_dinh_vo_chong": [
+    {
+      "quan_he": "Bố chồng",
+      "ho_ten": "Lê Văn Bình",
+      "nam_sinh": "1958",
+      "thong_tin": "Bác sĩ về hưu (nguyên Giám đốc Trung tâm Y tế huyện). Đã nghỉ hưu 2018"
+    },
+    {
+      "quan_he": "Mẹ chồng",
+      "ho_ten": "Phạm Thị Lan",
+      "nam_sinh": "1960",
+      "thong_tin": "Dược sĩ về hưu. Đã nghỉ hưu 2020"
+    },
+    {
+      "quan_he": "Em chồng",
+      "ho_ten": "Lê Minh Giang",
+      "nam_sinh": "1988",
+      "thong_tin": "Kỹ sư xây dựng, Công ty CP Xây dựng Coteccons. Đang công tác tại Hà Nội"
+    }
+  ],
+  
+  "qua_trinh_luong": [
+    {
+      "thang_nam_1": "09/2007",
+      "ngach_bac_1": "CV/1",
+      "he_so_luong_1": "2.10"
+    },
+    {
+      "thang_nam_2": "09/2010",
+      "ngach_bac_2": "CVC/2",
+      "he_so_luong_2": "2.56"
+    },
+    {
+      "thang_nam_3": "09/2013",
+      "ngach_bac_3": "CVC/3",
+      "he_so_luong_3": "2.69"
+    },
+    {
+      "thang_nam_4": "09/2016",
+      "ngach_bac_4": "CVC/4",
+      "he_so_luong_4": "2.81"
+    },
+    {
+      "thang_nam_5": "09/2019",
+      "ngach_bac_5": "CVC/5",
+      "he_so_luong_5": "2.93"
+    },
+    {
+      "thang_nam_6": "09/2022",
+      "ngach_bac_6": "CVC/6",
+      "he_so_luong_6": "3.00"
+    }
+  ],
+  
+  "luong_hang_nam": "Lương cơ bản + phụ cấp chức vụ: ~58.000.000 VNĐ/năm",
+  "nguon_khac": "Thu nhập từ dạy thêm, tư vấn: ~15.000.000 VNĐ/năm",
+  "nha_duoc_cap": "Không",
+  "dien_tich_nha_cap": "0",
+  "nha_tu_mua": "Nhà cấp 4 kiên cố, đã hoàn công",
+  "dien_tich_nha_mua": "120",
+  "dat_duoc_cap": "0",
+  "dat_tu_mua": "150 (thổ cư, có sổ đỏ)",
+  "dat_san_xuat": "500m² đất vườn tại xã Bình Sơn (trồng cây ăn trái)"
+}

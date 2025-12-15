@@ -1,0 +1,102 @@
+[
+  {
+    "guest": {
+      "name": "Ã”ng Nguyá»…n VÄƒn A",
+      "title": "GiÃ¡m Äá»‘c CÃ´ng ty TNHH ABC"
+    },
+    "business": {
+      "name": "SHOWROOM ÄIá»†N MÃY XANH PLUS",
+      "slogan": "Uy tÃ­n - Cháº¥t lÆ°á»£ng - GiÃ¡ tá»‘t nháº¥t"
+    },
+    "venue": {
+      "address": "Sá»‘ 123 ÄÆ°á»ng LÃ¡ng, Äá»‘ng Äa, HÃ  Ná»™i"
+    },
+    "event": {
+      "datetime": "08:00, Thá»© Báº£y, ngÃ y 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "BÃ  Tráº§n Thá»‹ Mai",
+      "title": "PhÃ³ GiÃ¡m Äá»‘c Sá»Ÿ CÃ´ng ThÆ°Æ¡ng HÃ  Ná»™i"
+    },
+    "business": {
+      "name": "SHOWROOM ÄIá»†N MÃY XANH PLUS",
+      "slogan": "Uy tÃ­n - Cháº¥t lÆ°á»£ng - GiÃ¡ tá»‘t nháº¥t"
+    },
+    "venue": {
+      "address": "Sá»‘ 123 ÄÆ°á»ng LÃ¡ng, Äá»‘ng Äa, HÃ  Ná»™i"
+    },
+    "event": {
+      "datetime": "08:00, Thá»© Báº£y, ngÃ y 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Ã”ng Pháº¡m Minh Tuáº¥n",
+      "title": "Chá»§ tá»‹ch Há»™i Doanh Nghiá»‡p Tráº» Viá»‡t Nam"
+    },
+    "business": {
+      "name": "SHOWROOM ÄIá»†N MÃY XANH PLUS",
+      "slogan": "Uy tÃ­n - Cháº¥t lÆ°á»£ng - GiÃ¡ tá»‘t nháº¥t"
+    },
+    "venue": {
+      "address": "Sá»‘ 123 ÄÆ°á»ng LÃ¡ng, Äá»‘ng Äa, HÃ  Ná»™i"
+    },
+    "event": {
+      "datetime": "08:00, Thá»© Báº£y, ngÃ y 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "BÃ  LÃª Thu HÆ°Æ¡ng",
+      "title": "Tá»•ng GiÃ¡m Äá»‘c Táº­p ÄoÃ n BÄS Golden Land"
+    },
+    "business": {
+      "name": "SHOWROOM ÄIá»†N MÃY XANH PLUS",
+      "slogan": "Uy tÃ­n - Cháº¥t lÆ°á»£ng - GiÃ¡ tá»‘t nháº¥t"
+    },
+    "venue": {
+      "address": "Sá»‘ 123 ÄÆ°á»ng LÃ¡ng, Äá»‘ng Äa, HÃ  Ná»™i"
+    },
+    "event": {
+      "datetime": "08:00, Thá»© Báº£y, ngÃ y 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  },
+  {
+    "guest": {
+      "name": "Ã”ng HoÃ ng Minh Äá»©c",
+      "title": "PhÃ³ Chá»§ tá»‹ch UBND Quáº­n Äá»‘ng Äa"
+    },
+    "business": {
+      "name": "SHOWROOM ÄIá»†N MÃY XANH PLUS",
+      "slogan": "Uy tÃ­n - Cháº¥t lÆ°á»£ng - GiÃ¡ tá»‘t nháº¥t"
+    },
+    "venue": {
+      "address": "Sá»‘ 123 ÄÆ°á»ng LÃ¡ng, Äá»‘ng Äa, HÃ  Ná»™i"
+    },
+    "event": {
+      "datetime": "08:00, Thá»© Báº£y, ngÃ y 30/11/2024"
+    },
+    "contact": {
+      "phone": "0912 345 678",
+      "email": "chamsoc@dienmayxanh.vn"
+    }
+  }
+]

@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 import os
 
@@ -6,10 +6,17 @@ import os
 class Settings(BaseSettings):
     """Application configuration settings"""
     
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+    
     # Application
     APP_NAME: str = "Utility Server API"
     APP_VERSION: str = "1.0.0"
-    API_PREFIX: str = "/api"
+    API_PREFIX: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     
@@ -53,9 +60,14 @@ class Settings(BaseSettings):
     MAX_FACE_DISTANCE: float = 0.6
     FACE_ENCODINGS_DIR: str = "./models/faces"
     
-    # OCR
+    # OCR Configuration
     OCR_LANGUAGES: str = "eng+vie"
     TESSERACT_CMD: Optional[str] = None
+    
+    # OCR Provider Priority (comma-separated, first = highest priority)
+    # Options: "adobe" (best quality), "tesseract" (free, unlimited)
+    # Default: "tesseract,adobe" = Try Tesseract first (free), fallback to Adobe
+    OCR_PRIORITY: str = "tesseract,adobe"  # User can change to "adobe,tesseract"
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
@@ -83,9 +95,20 @@ class Settings(BaseSettings):
     PDF_SERVICES_CLIENT_SECRET: Optional[str] = None
     ADOBE_ORG_ID: Optional[str] = None
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # Google Gemini API
+    GEMINI_API_KEY: Optional[str] = None
+    
+    # Technology Priority Settings (comma-separated, first = highest priority)
+    # Format: "adobe,pypdf" = Try Adobe first, fallback to pypdf
+    # Operations that support multiple technologies:
+    COMPRESS_PRIORITY: str = "adobe,pypdf"      # Compress PDF
+    WATERMARK_PRIORITY: str = "adobe,pypdf"     # Add watermark
+    PDF_INFO_PRIORITY: str = "adobe,pypdf"      # Get PDF properties
+    
+    # Adobe-only operations (no fallback available):
+    # - OCR_PDF: Convert scanned PDF to searchable (Adobe only)
+    # - EXTRACT_CONTENT: AI extraction of tables/images (Adobe only)
+    # - HTML_TO_PDF: Convert HTML to PDF (Adobe only)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -99,6 +122,66 @@ class Settings(BaseSettings):
             self.CELERY_BROKER_URL = self.REDIS_URL
         if not self.CELERY_RESULT_BACKEND:
             self.CELERY_RESULT_BACKEND = self.REDIS_URL
+    
+    def get_technology_priority(self, operation: str) -> list[str]:
+        """
+        Get technology priority list for an operation
+        
+        Args:
+            operation: Operation name (compress, watermark, pdf_info)
+        
+        Returns:
+            List of technologies in priority order, e.g., ['adobe', 'pypdf']
+        
+        Example:
+            >>> settings.get_technology_priority('compress')
+            ['adobe', 'pypdf']  # Try Adobe first, fallback to pypdf
+        """
+        operation_map = {
+            'compress': self.COMPRESS_PRIORITY,
+            'watermark': self.WATERMARK_PRIORITY,
+            'pdf_info': self.PDF_INFO_PRIORITY,
+        }
+        
+        priority_str = operation_map.get(operation, 'adobe,pypdf')
+        return [tech.strip() for tech in priority_str.split(',') if tech.strip()]
+    
+    def should_use_adobe_first(self, operation: str) -> bool:
+        """
+        Check if Adobe should be tried first for an operation
+        
+        Args:
+            operation: Operation name (compress, watermark, pdf_info)
+        
+        Returns:
+            True if Adobe is first priority, False otherwise
+        """
+        priorities = self.get_technology_priority(operation)
+        return len(priorities) > 0 and priorities[0].lower() == 'adobe'
+    
+    def get_fallback_technology(self, operation: str, failed_tech: str) -> Optional[str]:
+        """
+        Get next fallback technology after one fails
+        
+        Args:
+            operation: Operation name
+            failed_tech: Technology that just failed
+        
+        Returns:
+            Next technology to try, or None if no fallback
+        
+        Example:
+            >>> settings.get_fallback_technology('compress', 'adobe')
+            'pypdf'  # Try pypdf after Adobe failed
+        """
+        priorities = self.get_technology_priority(operation)
+        try:
+            current_index = priorities.index(failed_tech.lower())
+            if current_index + 1 < len(priorities):
+                return priorities[current_index + 1]
+        except (ValueError, IndexError):
+            pass
+        return None
 
 
 # Create settings instance
