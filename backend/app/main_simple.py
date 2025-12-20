@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Utility Server API",
-    description="API for Authentication, User Management, Document Processing, Image Tools and OCR",
-    version="2.0.0"
+    description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
+    version="2.0.1"
 )
 
 # Add validation error handler
