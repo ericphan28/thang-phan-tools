@@ -1,7 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 Modern Document Conversion Service (2025)
 Sử dụng các công nghệ mới nhất để convert documents
-Tích hợp Adobe PDF Services API cho PDF → Word chất lượng cao
+Tích hợp Adobe PDF Services API cho PDF to Word chất lượng cao
 """
 
 import os
@@ -10,6 +11,18 @@ import subprocess
 import uuid
 from pathlib import Path
 from dotenv import load_dotenv
+import json
+import zipfile
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+import time
+import asyncio
+from io import BytesIO
+import base64
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -3555,6 +3568,424 @@ Bắt đầu trích xuất:
                 detail=f"Electronic seal failed: {str(e)}"
             )
     
+    # ==================== Smart PDF OCR ====================
+    
+    async def smart_pdf_ocr(
+        self,
+        input_file: Path,
+        ai_engine: str = "gemini",
+        language: str = "vi"
+    ) -> dict:
+        """
+        Smart PDF OCR - Uses AI only for scanned PDFs, direct extraction for text-based PDFs
+        
+        Logic:
+        1. Detect if PDF is scanned using is_pdf_scanned()
+        2. If scanned → Use AI OCR (Gemini/Claude) 
+        3. If text-based → Use direct text extraction (fast & free)
+        
+        Args:
+            input_file: Path to PDF file
+            ai_engine: AI engine to use (gemini or claude)
+            language: Language for OCR (vi, en)
+            
+        Returns:
+            Dict with extraction results and metadata
+        """
+        if input_file.suffix.lower() != '.pdf':
+            raise HTTPException(400, "File must be .pdf")
+            
+        start_time = time.time()
+        
+        try:
+            # Step 1: Detect PDF type
+            logger.info(f"🔍 Analyzing PDF type: {input_file.name}")
+            pdf_is_scanned = is_pdf_scanned(input_file)
+            
+            if pdf_is_scanned:
+                # PDF is scanned → Use AI OCR
+                logger.info(f"📄 PDF is scanned - using {ai_engine.upper()} OCR")
+                result = await self._ocr_scanned_pdf(input_file, ai_engine, language)
+            else:
+                # PDF has text layer → Direct extraction
+                logger.info("📝 PDF has text layer - using direct extraction")
+                result = await self._extract_text_based_pdf(input_file)
+                
+            # Add processing metadata
+            processing_time = time.time() - start_time
+            result["processing"] = {
+                "time_seconds": round(processing_time, 2),
+                "method": "ai_ocr" if pdf_is_scanned else "direct_extraction",
+                "engine": ai_engine if pdf_is_scanned else "pypdf",
+                "pdf_type": "scanned" if pdf_is_scanned else "text_based"
+            }
+            
+            # Track AI usage if OCR was used
+            if pdf_is_scanned and "ai_usage" in result:
+                await self._track_ocr_usage(ai_engine, result, processing_time)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Smart PDF OCR failed: {e}")
+            raise HTTPException(500, f"PDF OCR failed: {str(e)}")
+            
+    async def _ocr_scanned_pdf(self, input_file: Path, ai_engine: str, language: str) -> dict:
+        """OCR scanned PDF using AI (Gemini/Claude)"""
+        try:
+            # Gemini can process PDF directly - much faster and cheaper!
+            if ai_engine.lower() == "gemini":
+                logger.info("📄 Using Gemini native PDF processing (no image conversion needed)")
+                return await self._ocr_pdf_with_gemini(input_file, language)
+            
+            # Claude requires image conversion
+            logger.info("🖼️ Converting PDF to images for Claude...")
+            
+            # Import pdf2image
+            try:
+                from pdf2image import convert_from_path
+            except ImportError:
+                raise HTTPException(
+                    500,
+                    "pdf2image not installed. Run: pip install pdf2image"
+                )
+            
+            # Check if poppler is available by testing with first page
+            try:
+                test_images = convert_from_path(str(input_file), first_page=1, last_page=1)
+            except Exception as e:
+                if "poppler" in str(e).lower() or "Unable to get page count" in str(e):
+                    raise HTTPException(
+                        500,
+                        "⚠️ Poppler not found!\n\n"
+                        "Poppler is required to convert PDF to images for Claude OCR.\n\n"
+                        "📥 Install Poppler for Windows:\n"
+                        "1. Download: https://github.com/oschwartz10612/poppler-windows/releases/\n"
+                        "2. Extract poppler-xx.xx.x to C:\\poppler\n"
+                        "3. Add C:\\poppler\\Library\\bin to System PATH\n"
+                        "4. Restart terminal/IDE\n\n"
+                        "Or use Chocolatey: choco install poppler\n\n"
+                        "💡 Tip: Use Gemini instead - it can read PDF directly without poppler!"
+                    )
+                raise
+            
+            # Convert all pages to images
+            images = convert_from_path(str(input_file))
+            
+            logger.info(f"📄 Converted PDF to {len(images)} images")
+            
+            all_text = ""
+            page_texts = []
+            total_cost = 0.0
+            total_tokens = 0
+            
+            for i, image in enumerate(images):
+                logger.info(f"🔍 Processing page {i+1}/{len(images)} with {ai_engine}")
+                
+                # Save image temporarily
+                temp_img_path = input_file.parent / f"temp_page_{i+1}.png"
+                image.save(temp_img_path, 'PNG')
+                
+                try:
+                    if ai_engine.lower() == "gemini":
+                        page_result = await self._ocr_with_gemini(temp_img_path, language)
+                    elif ai_engine.lower() == "claude":
+                        page_result = await self._ocr_with_claude(temp_img_path, language)
+                    else:
+                        raise HTTPException(400, "AI engine must be 'gemini' or 'claude'")
+                        
+                    page_text = page_result.get("text", "")
+                    page_texts.append({
+                        "page": i + 1,
+                        "text": page_text,
+                        "char_count": len(page_text),
+                        "tokens": page_result.get("tokens", 0),
+                        "cost_usd": page_result.get("cost", 0.0)
+                    })
+                    
+                    all_text += f"\\n\\n--- Page {i+1} ---\\n" + page_text
+                    total_tokens += page_result.get("tokens", 0)
+                    total_cost += page_result.get("cost", 0.0)
+                    
+                finally:
+                    # Cleanup temp image
+                    if temp_img_path.exists():
+                        temp_img_path.unlink()
+                        
+            return {
+                "text": all_text.strip(),
+                "pages": page_texts,
+                "total_pages": len(images),
+                "char_count": len(all_text),
+                "word_count": len(all_text.split()),
+                "ai_usage": {
+                    "engine": ai_engine,
+                    "total_tokens": total_tokens,
+                    "total_cost_usd": round(total_cost, 6),
+                    "cost_per_page": round(total_cost / len(images), 6) if images else 0
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"AI OCR failed: {e}")
+            raise HTTPException(500, f"AI OCR failed: {str(e)}")
+            
+    async def _extract_text_based_pdf(self, input_file: Path) -> dict:
+        """Extract text from text-based PDF using direct method"""
+        try:
+            text = await self.extract_pdf_text(input_file)
+            
+            return {
+                "text": text,
+                "char_count": len(text),
+                "word_count": len(text.split()),
+                "message": "✅ Text extracted directly from PDF (no OCR needed)"
+            }
+            
+        except Exception as e:
+            logger.error(f"Direct text extraction failed: {e}")
+            raise HTTPException(500, f"Text extraction failed: {str(e)}")
+    
+    async def _ocr_pdf_with_gemini(self, pdf_path: Path, language: str) -> dict:
+        """OCR PDF directly using Gemini native PDF support"""
+        try:
+            import google.generativeai as genai
+            
+            # Get API key
+            from app.services.ai_usage_service import get_api_key
+            api_key = get_api_key("gemini")
+            if not api_key:
+                raise HTTPException(500, "Gemini API key not configured")
+                
+            genai.configure(api_key=api_key)
+            
+            # Upload PDF to Gemini Files API
+            logger.info(f"📤 Uploading PDF to Gemini Files API...")
+            uploaded_file = genai.upload_file(str(pdf_path))
+            logger.info(f"✅ PDF uploaded: {uploaded_file.name}")
+            
+            # Create model and generate content
+            model = genai.GenerativeModel("gemini-2.0-flash-exp")
+            
+            # OCR prompt
+            prompt = """Trích xuất TOÀN BỘ văn bản trong tài liệu PDF này.
+
+YÊU CẦU:
+- Giữ chính xác 100% ký tự Tiếng Việt (ă, â, ê, ô, ơ, ư, đ, dấu thanh)
+- Giữ nguyên cấu trúc, xuống dòng, format như trong PDF
+- Chỉ trả về văn bản, KHÔNG thêm giải thích
+
+Trả về văn bản:"""
+            
+            response = model.generate_content([uploaded_file, prompt])
+            text = response.text.strip()
+            
+            # Calculate usage
+            usage = response.usage_metadata
+            total_tokens = usage.prompt_token_count + usage.candidates_token_count
+            
+            # Calculate cost (Gemini 2.0 Flash pricing)
+            cost = (usage.prompt_token_count / 1_000_000 * 0.075) + (usage.candidates_token_count / 1_000_000 * 0.30)
+            
+            # Clean up uploaded file
+            try:
+                genai.delete_file(uploaded_file.name)
+                logger.info(f"🗑️ Cleaned up uploaded file")
+            except:
+                pass
+            
+            # Get page count
+            from pypdf import PdfReader
+            reader = PdfReader(pdf_path)
+            page_count = len(reader.pages)
+            
+            return {
+                "text": text,
+                "total_pages": page_count,
+                "char_count": len(text),
+                "word_count": len(text.split()),
+                "ai_usage": {
+                    "engine": "gemini",
+                    "total_tokens": total_tokens,
+                    "total_cost_usd": round(cost, 6),
+                    "cost_per_page": round(cost / page_count, 6) if page_count > 0 else 0
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Gemini PDF OCR failed: {e}")
+            raise HTTPException(500, f"Gemini PDF OCR failed: {str(e)}")
+            
+    async def _ocr_with_gemini(self, image_path: Path, language: str) -> dict:
+        """OCR image using Gemini API"""
+        try:
+            import google.generativeai as genai
+            from PIL import Image as PILImage
+            
+            # Get API key
+            from app.services.ai_usage_service import get_api_key
+            api_key = get_api_key("gemini")
+            if not api_key:
+                raise HTTPException(500, "Gemini API key not configured")
+                
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-2.5-flash")
+            
+            # Prepare image
+            image = PILImage.open(image_path)
+            
+            # OCR prompt
+            prompt = f"""Trích xuất TOÀN BỘ văn bản trong ảnh này.
+
+YÊU CẦU:
+- Giữ chính xác 100% ký tự Tiếng Việt (ă, â, ê, ô, ơ, ư, đ, dấu thanh)
+- Giữ nguyên cấu trúc, xuống dòng như trong ảnh
+- Chỉ trả về văn bản, KHÔNG thêm giải thích
+
+Trả về văn bản:"""
+            
+            # Generate content
+            response = model.generate_content([prompt, image])
+            text = response.text.strip()
+            
+            # Calculate usage
+            usage = response.usage_metadata
+            input_tokens = usage.prompt_token_count
+            output_tokens = usage.candidates_token_count
+            total_tokens = input_tokens + output_tokens
+            
+            # Calculate cost (Gemini 2.5 Flash pricing)
+            cost = (input_tokens / 1_000_000 * 0.30) + (output_tokens / 1_000_000 * 2.50)
+            
+            return {
+                "text": text,
+                "tokens": total_tokens,
+                "cost": cost
+            }
+            
+        except Exception as e:
+            logger.error(f"Gemini OCR failed: {e}")
+            raise HTTPException(500, f"Gemini OCR failed: {str(e)}")
+            
+    async def _ocr_with_claude(self, image_path: Path, language: str) -> dict:
+        """OCR image using Claude API"""
+        try:
+            import anthropic
+            
+            # Get API key
+            from app.services.ai_usage_service import get_api_key
+            api_key = get_api_key("claude")
+            if not api_key:
+                raise HTTPException(500, "Claude API key not configured")
+                
+            client = anthropic.Anthropic(api_key=api_key)
+            
+            # Encode image
+            with open(image_path, "rb") as img_file:
+                image_data = base64.standard_b64encode(img_file.read()).decode("utf-8")
+                
+            # OCR prompt
+            prompt = """Trích xuất TOÀN BỘ văn bản trong ảnh này.
+
+YÊU CẦU:
+- Giữ chính xác 100% ký tự Tiếng Việt (ă, â, ê, ô, ơ, ư, đ, dấu thanh)
+- Giữ nguyên cấu trúc, xuống dòng như trong ảnh
+- Chỉ trả về văn bản, KHÔNG thêm giải thích
+
+Trả về văn bản:"""
+            
+            # Call Claude API
+            message = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                messages=[{
+                    "role": "user",
+                    "content": [{
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "image/png",
+                            "data": image_data,
+                        },
+                    }, {
+                        "type": "text",
+                        "text": prompt
+                    }],
+                }],
+            )
+            
+            text = message.content[0].text.strip()
+            
+            # Calculate usage
+            input_tokens = message.usage.input_tokens
+            output_tokens = message.usage.output_tokens
+            total_tokens = input_tokens + output_tokens
+            
+            # Calculate cost (Claude Sonnet 4 pricing)
+            cost = (input_tokens / 1_000_000 * 3.00) + (output_tokens / 1_000_000 * 15.00)
+            
+            return {
+                "text": text,
+                "tokens": total_tokens,
+                "cost": cost
+            }
+            
+        except Exception as e:
+            logger.error(f"Claude OCR failed: {e}")
+            raise HTTPException(500, f"Claude OCR failed: {str(e)}")
+    
+    async def _track_ocr_usage(self, ai_engine: str, result: dict, processing_time: float):
+        """Track AI OCR usage to database"""
+        try:
+            from app.services.ai_usage_service import log_usage
+            from app.core.database import SessionLocal
+            
+            ai_usage = result.get("ai_usage", {})
+            if not ai_usage:
+                return
+            
+            # Determine model based on engine
+            model = "gemini-2.0-flash-exp" if ai_engine == "gemini" else "claude-sonnet-4-20250514"
+            
+            # Calculate tokens (if not present, estimate from pages)
+            total_tokens = ai_usage.get("total_tokens", 0)
+            if total_tokens == 0 and "total_pages" in result:
+                # Estimate: 258 tokens per page for Gemini PDF
+                total_tokens = result["total_pages"] * 258
+            
+            # Split input/output tokens (estimate 70/30 ratio)
+            input_tokens = int(total_tokens * 0.7)
+            output_tokens = int(total_tokens * 0.3)
+            
+            # Log usage
+            db = SessionLocal()
+            try:
+                log_usage(
+                    db=db,
+                    provider=ai_engine,
+                    model=model,
+                    endpoint="Ocr Compare",  # Match the UI display
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    processing_time=processing_time,
+                    status="success",
+                    request_metadata={
+                        "pages": result.get("total_pages", 1),
+                        "char_count": result.get("char_count", 0),
+                        "cost_usd": ai_usage.get("total_cost_usd", 0.0)
+                    }
+                )
+                db.commit()
+                logger.info(f"✅ Tracked {ai_engine} usage: {total_tokens} tokens, ${ai_usage.get('total_cost_usd', 0):.6f}")
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to track OCR usage: {e}")
+            # Don't raise - tracking failure shouldn't break OCR
+    
+    # ==================== Cleanup ====================
+    
     # ==================== Cleanup ====================
     
     async def cleanup_file(self, file_path: Path) -> None:
@@ -3579,3 +4010,1250 @@ Bắt đầu trích xuất:
                         count += 1
                         
         return count
+
+
+    # ==================== PDF TO WORD SMART (Gemini) ====================
+    
+    async def pdf_to_word_smart(
+        self,
+        input_file: Path,
+        language: str = "vi"
+    ) -> Path:
+        
+        if input_file.suffix.lower() != '.pdf':
+            raise HTTPException(400, "File must be .pdf")
+        
+        start_time = time.time()
+        output_file = self.output_dir / f"{input_file.stem}_converted.docx"
+        
+        try:
+            # Step 1: Upload PDF to Gemini and generate Markdown
+            logger.info(f"Converting PDF to Markdown with Gemini...")
+            markdown_result = await self._pdf_to_markdown_gemini(input_file, language)
+            
+            # Step 2: Convert Markdown to Word
+            logger.info(f"Converting Markdown to Word...")
+            await self._markdown_to_word(markdown_result["markdown"], output_file)
+            
+            processing_time = time.time() - start_time
+            logger.info(f"PDF to Word completed in {processing_time:.2f}s")
+            
+            # Track AI usage
+            await self._track_pdf_to_word_usage(
+                markdown_result.get("ai_usage", {}),
+                processing_time
+            )
+            
+            return output_file
+            
+        except Exception as e:
+            error_msg = str(e).encode('utf-8', errors='ignore').decode('utf-8')
+            logger.error(f"PDF to Word conversion failed: {error_msg}")
+            raise HTTPException(500, f"Conversion failed: {error_msg}")
+    
+    async def _pdf_to_markdown_gemini(self, pdf_path: Path, language: str) -> dict:
+        
+        try:
+            import google.generativeai as genai
+            
+            # Get API key - with fallback to env
+            api_key = None
+            try:
+                from app.services.ai_usage_service import get_api_key
+                api_key = get_api_key("gemini")
+            except:
+                # Fallback to environment variable
+                api_key = os.getenv("GOOGLE_API_KEY")
+            
+            if not api_key:
+                raise HTTPException(500, "Gemini API key not configured")
+                
+            genai.configure(api_key=api_key)
+            
+            # Upload PDF
+            logger.info("Uploading PDF to Gemini...")
+            uploaded_file = genai.upload_file(str(pdf_path))
+            
+            # Create model
+            model = genai.GenerativeModel("gemini-2.0-flash-exp")
+            
+            # Prompt for Markdown generation - SIMPLIFIED
+            lang_desc = "Tiếng Việt" if language == "vi" else "English"
+            prompt = f"""Convert this PDF document to Markdown format. Preserve the layout as much as possible.
+
+IMPORTANT RULES:
+
+1. **Text Alignment:**
+   - If text is CENTERED on the page → start line with: [CENTER]
+   - If text is RIGHT-ALIGNED → start line with: [RIGHT]
+   - Otherwise, leave as normal left-aligned text
+
+2. **Headings (based on font size and style):**
+   - Large UPPERCASE text → # Heading 1
+   - Medium bold text → ## Heading 2
+   - Smaller bold text → ### Heading 3
+
+3. **Text Formatting:**
+   - Bold text: **text**
+   - Italic text: *text*
+
+4. **Tables:**
+   - Use Markdown table syntax: | Column1 | Column2 |
+   - Preserve table structure
+
+5. **Lists:**
+   - Bullets: - Item
+   - Numbered: 1. Item
+
+6. **Accuracy:**
+   - Keep 100% accurate Vietnamese text with all diacritics
+   - Preserve numbers, dates, punctuation
+   - Maintain document structure and order
+
+Output ONLY the Markdown text, NO explanations.
+
+Markdown:"""
+
+            response = model.generate_content([uploaded_file, prompt])
+            markdown = response.text.strip()
+            
+            # Calculate usage
+            usage = response.usage_metadata
+            total_tokens = usage.prompt_token_count + usage.candidates_token_count
+            cost = (usage.prompt_token_count / 1_000_000 * 0.075) + (usage.candidates_token_count / 1_000_000 * 0.30)
+            
+            # Cleanup
+            try:
+                genai.delete_file(uploaded_file.name)
+            except:
+                pass
+            
+            return {
+                "markdown": markdown,
+                "char_count": len(markdown),
+                "ai_usage": {
+                    "engine": "gemini",
+                    "model": "gemini-2.0-flash-exp",
+                    "total_tokens": total_tokens,
+                    "total_cost_usd": round(cost, 6)
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Gemini Markdown generation failed: {e}")
+            raise HTTPException(500, f"Markdown generation failed: {str(e)}")
+    
+    async def _markdown_to_word(self, markdown: str, output_path: Path):
+        
+        try:
+            from docx import Document
+            from docx.shared import Pt, RGBColor, Inches
+            from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+            import re
+            
+            doc = Document()
+            
+            # Set document margins (narrow margins like original)
+            sections = doc.sections
+            for section in sections:
+                section.top_margin = Inches(0.5)
+                section.bottom_margin = Inches(0.5)
+                section.left_margin = Inches(0.75)
+                section.right_margin = Inches(0.75)
+            
+            # Parse Markdown line by line
+            lines = markdown.split('\n')
+            i = 0
+            
+            while i < len(lines):
+                line = lines[i].rstrip()
+                
+                # Skip empty lines
+                if not line:
+                    i += 1
+                    continue
+                
+                # Detect and remove alignment tags
+                alignment = WD_PARAGRAPH_ALIGNMENT.LEFT  # default
+                original_line = line
+                
+                if line.startswith('[CENTER]'):
+                    alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                    line = line[8:].strip()
+                elif line.startswith('[RIGHT]'):
+                    alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+                    line = line[7:].strip()
+                
+                # Remove any leftover tags like [LEFT], [/LEFT], [/RIGHT], [/CENTER]
+                line = line.replace('[LEFT]', '').replace('[/LEFT]', '')
+                line = line.replace('[RIGHT]', '').replace('[/RIGHT]', '')
+                line = line.replace('[CENTER]', '').replace('[/CENTER]', '')
+                line = line.strip()
+                
+                if not line:  # If line becomes empty after removing tags
+                    i += 1
+                    continue
+                
+                # Heading 1
+                if line.startswith('# ') and not line.startswith('##'):
+                    text = line[2:].strip()
+                    heading = doc.add_heading(text, level=1)
+                    heading.alignment = alignment
+                    # Make heading 1 bigger and bold
+                    for run in heading.runs:
+                        run.font.size = Pt(16)
+                        run.font.bold = True
+                    i += 1
+                    
+                # Heading 2
+                elif line.startswith('## ') and not line.startswith('###'):
+                    text = line[3:].strip()
+                    heading = doc.add_heading(text, level=2)
+                    heading.alignment = alignment
+                    for run in heading.runs:
+                        run.font.size = Pt(14)
+                        run.font.bold = True
+                    i += 1
+                    
+                # Heading 3
+                elif line.startswith('### '):
+                    text = line[4:].strip()
+                    heading = doc.add_heading(text, level=3)
+                    heading.alignment = alignment
+                    for run in heading.runs:
+                        run.font.size = Pt(12)
+                        run.font.bold = True
+                    i += 1
+                    
+                # Table
+                elif line.startswith('|'):
+                    table_lines = []
+                    while i < len(lines) and lines[i].strip().startswith('|'):
+                        table_lines.append(lines[i].strip())
+                        i += 1
+                    
+                    # Parse table
+                    if len(table_lines) >= 2:
+                        # Extract header
+                        header_cells = [cell.strip() for cell in table_lines[0].split('|')[1:-1]]
+                        
+                        # Skip separator line
+                        data_lines = table_lines[2:] if len(table_lines) > 2 else []
+                        
+                        # Create table
+                        if data_lines:
+                            table = doc.add_table(rows=1 + len(data_lines), cols=len(header_cells))
+                            table.style = 'Light Grid Accent 1'
+                            
+                            # Add header
+                            for col_idx, header_text in enumerate(header_cells):
+                                cell = table.rows[0].cells[col_idx]
+                                cell.text = header_text
+                                # Bold header
+                                for paragraph in cell.paragraphs:
+                                    for run in paragraph.runs:
+                                        run.bold = True
+                            
+                            # Add data rows
+                            for row_idx, data_line in enumerate(data_lines, start=1):
+                                cells_data = [cell.strip() for cell in data_line.split('|')[1:-1]]
+                                for col_idx, cell_data in enumerate(cells_data):
+                                    if col_idx < len(header_cells):
+                                        table.rows[row_idx].cells[col_idx].text = cell_data
+                    
+                # List (unordered)
+                elif line.startswith('- ') or line.startswith('* '):
+                    text = line[2:].strip()
+                    p = doc.add_paragraph(style='List Bullet')
+                    self._add_formatted_text(p, text)
+                    i += 1
+                    
+                # List (ordered)
+                elif re.match(r'^\d+\.\s', line):
+                    text = re.sub(r'^\d+\.\s', '', line).strip()
+                    p = doc.add_paragraph(style='List Number')
+                    self._add_formatted_text(p, text)
+                    i += 1
+                    
+                # Regular paragraph
+                else:
+                    p = doc.add_paragraph()
+                    p.alignment = alignment
+                    self._add_formatted_text(p, line)
+                    
+                    # Add spacing after paragraph
+                    p.paragraph_format.space_after = Pt(6)
+                    i += 1
+            
+            # Save document
+            doc.save(str(output_path))
+            logger.info(f"Word document saved: {output_path}")
+            
+        except Exception as e:
+            logger.error(f"Markdown to Word conversion failed: {e}")
+            raise HTTPException(500, f"Word generation failed: {str(e)}")
+    
+    def _add_formatted_text(self, paragraph, text: str):
+        
+        import re
+        
+        # Pattern to match: ***text*** (bold+italic), **text** (bold), *text* (italic)
+        pattern = r'(\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*)'
+        
+        parts = re.split(pattern, text)
+        
+        for part in parts:
+            if not part:
+                continue
+                
+            # Bold + Italic
+            if part.startswith('***') and part.endswith('***'):
+                run = paragraph.add_run(part[3:-3])
+                run.bold = True
+                run.italic = True
+                
+            # Bold
+            elif part.startswith('**') and part.endswith('**'):
+                run = paragraph.add_run(part[2:-2])
+                run.bold = True
+                
+            # Italic
+            elif part.startswith('*') and part.endswith('*'):
+                run = paragraph.add_run(part[1:-1])
+                run.italic = True
+                
+            # Normal text
+            else:
+                paragraph.add_run(part)
+    
+    async def _track_pdf_to_word_usage(self, ai_usage: dict, processing_time: float):
+        
+        try:
+            from app.services.ai_usage_service import log_usage
+            from app.core.database import SessionLocal
+            
+            if not ai_usage:
+                return
+            
+            total_tokens = ai_usage.get("total_tokens", 0)
+            input_tokens = int(total_tokens * 0.7)
+            output_tokens = int(total_tokens * 0.3)
+            
+            db = SessionLocal()
+            try:
+                log_usage(
+                    db=db,
+                    provider="gemini",
+                    model=ai_usage.get("model", "gemini-2.0-flash-exp"),
+                    endpoint="PDF to Word",
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    processing_time=processing_time,
+                    status="success",
+                    request_metadata={
+                        "cost_usd": ai_usage.get("total_cost_usd", 0.0)
+                    }
+                )
+                db.commit()
+            finally:
+                db.close()
+                
+        except Exception as e:
+            logger.error(f"Failed to track PDF to Word usage: {e}")
+
+
+    # ==================== TEXT TO WORD (MHTML FORMAT) ====================
+    
+    async def text_to_word_mhtml(
+        self,
+        text: str,
+        provider: str = "gemini",  # "gemini" or "claude"
+        model: Optional[str] = None,
+        language: str = "vi"
+    ) -> tuple[str, dict]:
+        """
+        Convert plain text to formatted Word document using MHTML format
+        
+        Uses AI (Gemini/Claude) to structure and format the text, then generates
+        MHTML which can be opened directly by Microsoft Word.
+        
+        Args:
+            text: Raw text input
+            provider: AI provider ("gemini" or "claude")
+            model: Specific model name (optional)
+            language: Language code ("vi", "en", etc.)
+            
+        Returns:
+            tuple: (mhtml_content, ai_usage_metadata)
+        """
+        start_time = time.time()
+        
+        # Step 1: AI formats the text into structured JSON
+        if provider == "gemini":
+            structured_data = await self._format_text_with_gemini(text, model, language)
+        elif provider == "claude":
+            structured_data = await self._format_text_with_claude(text, model, language)
+        else:
+            raise ValueError(f"Invalid provider: {provider}. Use 'gemini' or 'claude'")
+        
+        # Step 2: Generate DOCX from structured data (instead of MHTML)
+        docx_bytes = self._generate_docx(structured_data, language)
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        # Prepare AI usage metadata
+        ai_usage = structured_data.get("_metadata", {})
+        ai_usage["processing_time_ms"] = processing_time
+        
+        return docx_bytes, ai_usage
+    
+    async def _format_text_with_gemini(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        language: str = "vi"
+    ) -> dict:
+        """Use Gemini to structure and format text"""
+        from app.services.ai_usage_service import get_api_key, check_budget_limit, log_usage
+        from app.core.database import SessionLocal
+        
+        # Get API key from AI Admin system
+        db = SessionLocal()
+        try:
+            # Check budget first
+            budget_check = check_budget_limit("gemini", db)
+            if not budget_check["ok"]:
+                raise HTTPException(
+                    400,
+                    f"Gemini budget limit reached. {budget_check.get('reason', 'Monthly limit exceeded')}"
+                )
+            
+            api_key = get_api_key("gemini", db)
+            if not api_key:
+                raise HTTPException(
+                    400,
+                    "Gemini API key not configured. Please add key in AI Admin settings."
+                )
+            
+            # Configure Gemini with retrieved key
+            if not GEMINI_AVAILABLE:
+                raise HTTPException(400, "Gemini library not installed")
+            
+            genai.configure(api_key=api_key)
+            
+            # Use specified model or default
+            model = model or self.gemini_model_name or DEFAULT_GEMINI_MODEL
+            gemini_model = genai.GenerativeModel(model)
+            
+            prompt = self._build_format_prompt(text, language)
+            start_time = time.time()
+            
+            response = await asyncio.to_thread(
+                gemini_model.generate_content,
+                prompt,
+                generation_config={
+                    "temperature": 0.3,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                    "max_output_tokens": 8192,
+                }
+            )
+            
+            processing_time = time.time() - start_time
+            
+            # Parse JSON response
+            json_text = response.text.strip()
+            if json_text.startswith("```json"):
+                json_text = json_text[7:]
+            if json_text.endswith("```"):
+                json_text = json_text[:-3]
+            json_text = json_text.strip()
+            
+            structured_data = json.loads(json_text)
+            
+            # Get token usage
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+            
+            # Add metadata
+            structured_data["_metadata"] = {
+                "provider": "gemini",
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": response.usage_metadata.total_token_count,
+            }
+            
+            # Log usage to AI Admin system
+            log_usage(
+                db=db,
+                provider="gemini",
+                model=model,
+                endpoint="text-to-word",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                processing_time=processing_time,
+                status="success"
+            )
+            
+            return structured_data
+            
+        except Exception as e:
+            # Log error
+            log_usage(
+                db=db,
+                provider="gemini",
+                model=model or DEFAULT_GEMINI_MODEL,
+                endpoint="text-to-word",
+                status="error",
+                error_message=str(e)
+            )
+            raise
+            
+        finally:
+            db.close()
+    
+    async def _format_text_with_claude(
+        self,
+        text: str,
+        model: Optional[str] = None,
+        language: str = "vi"
+    ) -> dict:
+        """Use Claude to structure and format text"""
+        from app.services.ai_usage_service import get_api_key, check_budget_limit, log_usage
+        from app.core.database import SessionLocal
+        
+        # Get API key from AI Admin system
+        db = SessionLocal()
+        try:
+            # Check budget first
+            budget_check = check_budget_limit("claude", db)
+            if not budget_check["ok"]:
+                raise HTTPException(
+                    400,
+                    f"Claude budget limit reached. {budget_check.get('reason', 'Monthly limit exceeded')}"
+                )
+            
+            claude_api_key = get_api_key("claude", db)
+            if not claude_api_key:
+                raise HTTPException(
+                    400,
+                    "Claude API key not configured. Please add key in AI Admin settings."
+                )
+            
+            model = model or "claude-sonnet-4-20250514"
+            
+            prompt = self._build_format_prompt(text, language)
+            start_time = time.time()
+            
+            # Use anthropic library (same as OCR)
+            import anthropic
+            client = anthropic.Anthropic(api_key=claude_api_key)
+            
+            # Call Claude API
+            response = await asyncio.to_thread(
+                client.messages.create,
+                model=model,
+                max_tokens=8192,
+                temperature=0.3,
+                messages=[{
+                    "role": "user",
+                    "content": prompt
+                }]
+            )
+            
+            processing_time = time.time() - start_time
+            
+            # Parse JSON from response
+            content_text = response.content[0].text.strip()
+            if content_text.startswith("```json"):
+                content_text = content_text[7:]
+            if content_text.endswith("```"):
+                content_text = content_text[:-3]
+            content_text = content_text.strip()
+            
+            structured_data = json.loads(content_text)
+            
+            # Get token usage from anthropic response
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+            
+            # Add metadata
+            structured_data["_metadata"] = {
+                "provider": "claude",
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+            }
+            
+            # Log usage to AI Admin system
+            log_usage(
+                db=db,
+                provider="claude",
+                model=model,
+                endpoint="text-to-word",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                processing_time=processing_time,
+                status="success"
+            )
+            
+            return structured_data
+                
+        except Exception as e:
+            # Log error if not already logged
+            if "Claude API error" not in str(e):
+                log_usage(
+                    db=db,
+                    provider="claude",
+                    model=model or "claude-3-5-sonnet-20241022",
+                    endpoint="text-to-word",
+                    status="error",
+                    error_message=str(e)
+                )
+            raise
+            
+        finally:
+            db.close()
+    
+    def _build_format_prompt(self, text: str, language: str) -> str:            # Parse JSON from response
+            content_text = result["content"][0]["text"].strip()
+            if content_text.startswith("```json"):
+                content_text = content_text[7:]
+            if content_text.endswith("```"):
+                content_text = content_text[:-3]
+            content_text = content_text.strip()
+            
+            structured_data = json.loads(content_text)
+            
+            # Add metadata
+            structured_data["_metadata"] = {
+                "provider": "claude",
+                "model": model,
+                "input_tokens": result["usage"]["input_tokens"],
+                "output_tokens": result["usage"]["output_tokens"],
+                "total_tokens": result["usage"]["input_tokens"] + result["usage"]["output_tokens"],
+            }
+            
+            return structured_data
+    
+    def _build_format_prompt(self, text: str, language: str) -> str:
+        """Build prompt for AI to structure text with visualization support"""
+        lang_instruction = {
+            "vi": "Phân tích và định dạng văn bản tiếng Việt sau đây",
+            "en": "Analyze and format the following English text"
+        }.get(language, "Analyze and format the following text")
+        
+        return f"""{lang_instruction} thành cấu trúc JSON với khả năng tạo biểu đồ:
+
+INPUT TEXT:
+{text}
+
+INSTRUCTIONS:
+1. Phân tích nội dung và xác định:
+   - Title (tiêu đề chính)
+   - Subtitle (tiêu đề phụ nếu có)
+   - Sections (các phần nội dung chính)
+   - **Visualizations (biểu đồ từ số liệu nếu có)**
+   
+2. Mỗi section có:
+   - heading: Tiêu đề phần
+   - level: 1 (h2) hoặc 2 (h3)
+   - content: Mảng các đoạn văn hoặc list items
+   
+3. Mỗi content item có:
+   - type: "paragraph", "list", "info_box", "highlight_box"
+   - text: Nội dung văn bản
+   - items: Array (nếu là list)
+   - highlights: Array các từ/cụm từ cần highlight
+   
+4. **VISUALIZATION (CHỈ khi text có số liệu):**
+   - Nếu text chứa dữ liệu số (doanh thu, thống kê, so sánh...)
+   - Tạo biểu đồ phù hợp:
+     * "bar" - So sánh giữa các mục
+     * "line" - Xu hướng theo thời gian
+     * "pie" - Tỷ lệ phần trăm
+     * "scatter" - Mối quan hệ giữa 2 biến
+   - position: "after_section_0", "after_section_1", ...
+   
+5. Tự động nhận diện:
+   - Thông tin quan trọng → info_box
+   - Kết luận/tóm tắt → highlight_box
+   - Danh sách → list
+   - Tên người, địa điểm → highlights
+   - **Số liệu → visualizations**
+
+OUTPUT JSON FORMAT:
+{{
+  "title": "Tiêu đề chính",
+  "subtitle": "Tiêu đề phụ (optional)",
+  "sections": [
+    {{
+      "heading": "Phần I: ...",
+      "level": 1,
+      "content": [
+        {{
+          "type": "paragraph",
+          "text": "Đoạn văn bản...",
+          "highlights": ["từ quan trọng"]
+        }}
+      ]
+    }}
+  ],
+  "visualizations": [
+    {{
+      "type": "bar",
+      "title": "Biểu đồ doanh thu",
+      "position": "after_section_0",
+      "data": {{
+        "labels": ["Q1", "Q2", "Q3"],
+        "values": [100, 150, 120],
+        "colors": ["#3498db", "#2ecc71", "#e74c3c"]
+      }},
+      "description": "Biểu đồ so sánh doanh thu theo quý"
+    }}
+  ]
+}}
+
+**CHÚ Ý**: Chỉ thêm "visualizations" khi text CÓ dữ liệu số cụ thể.
+Trả về JSON thuần túy, không có markdown wrapper."""
+    
+    def _generate_mhtml(self, structured_data: dict, language: str) -> str:
+        """Generate MHTML content from structured data"""
+        
+        title = structured_data.get("title", "Document")
+        subtitle = structured_data.get("subtitle", "")
+        sections = structured_data.get("sections", [])
+        
+        # Generate HTML body content
+        body_html = f"""
+<div class="Section1">
+
+<h1>{self._escape_html(title)}</h1>
+"""
+        
+        if subtitle:
+            body_html += f'<p class="subtitle">{self._escape_html(subtitle)}</p>\n\n'
+        
+        # Generate sections
+        for section in sections:
+            heading = section.get("heading", "")
+            level = section.get("level", 1)
+            content_items = section.get("content", [])
+            
+            if heading:
+                heading_tag = "h2" if level == 1 else "h3"
+                body_html += f'<{heading_tag}>{self._escape_html(heading)}</{heading_tag}>\n\n'
+            
+            # Generate content items
+            for item in content_items:
+                item_type = item.get("type", "paragraph")
+                
+                if item_type == "paragraph":
+                    text = item.get("text", "")
+                    highlights = item.get("highlights", [])
+                    
+                    # Escape HTML first
+                    text = self._escape_html(text)
+                    
+                    # Apply highlights after escaping
+                    for highlight in highlights:
+                        escaped_highlight = self._escape_html(highlight)
+                        text = text.replace(
+                            escaped_highlight,
+                            f'<span class="key-name">{escaped_highlight}</span>'
+                        )
+                    
+                    body_html += f'<p>{text}</p>\n\n'
+                
+                elif item_type == "list":
+                    items = item.get("items", [])
+                    body_html += '<ul>\n'
+                    for list_item in items:
+                        body_html += f'<li>{self._escape_html(list_item)}</li>\n'
+                    body_html += '</ul>\n\n'
+                
+                elif item_type == "info_box":
+                    box_title = item.get("title", "THÔNG TIN")
+                    items = item.get("items", [])
+                    
+                    body_html += '<div class="info-box">\n'
+                    body_html += f'<p class="no-indent"><strong>{self._escape_html(box_title)}</strong></p>\n'
+                    for box_item in items:
+                        body_html += f'<p class="no-indent">{self._escape_html(box_item)}</p>\n'
+                    body_html += '</div>\n\n'
+                
+                elif item_type == "highlight_box":
+                    box_title = item.get("title", "KẾT LUẬN")
+                    text = item.get("text", "")
+                    
+                    body_html += '<div class="conclusion-box">\n'
+                    body_html += f'<p class="no-indent"><strong>{self._escape_html(box_title)}</strong></p>\n'
+                    body_html += f'<p class="no-indent">{self._escape_html(text)}</p>\n'
+                    body_html += '</div>\n\n'
+        
+        body_html += '''
+<p class="center" style="margin-top: 24pt; font-style: italic; color: #666666;"><strong>––– HẾT –––</strong></p>
+
+</div>
+'''
+        
+        # Generate full MHTML
+        mhtml = f"""MIME-Version: 1.0
+Content-Type: multipart/related; boundary="----=_NextPart_000_0000_01D00000.00000000"
+
+------=_NextPart_000_0000_01D00000.00000000
+Content-Type: text/html; charset="utf-8"
+
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word">
+<meta name="Originator" content="Microsoft Word">
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:SpellingState>Clean</w:SpellingState>
+<w:GrammarState>Clean</w:GrammarState>
+<w:ValidateAgainstSchemas/>
+<w:SaveIfXMLInvalid>false</w:SaveIfXMLInvalid>
+<w:IgnoreMixedContent>false</w:IgnoreMixedContent>
+<w:AlwaysShowPlaceholderText>false</w:AlwaysShowPlaceholderText>
+</w:WordDocument>
+</xml>
+<![endif]-->
+
+<style>
+@page Section1 {{
+  size: 21.0cm 29.7cm;
+  margin: 2.5cm 2.0cm 2.5cm 2.0cm;
+  mso-header-margin: 1.5cm;
+  mso-footer-margin: 1.5cm;
+  mso-paper-source: 0;
+}}
+
+div.Section1 {{
+  page: Section1;
+}}
+
+body {{
+  font-family: 'Times New Roman', serif;
+  font-size: 13pt;
+  line-height: 1.5;
+}}
+
+h1 {{
+  font-size: 18pt;
+  font-weight: bold;
+  color: #C00000;
+  text-align: center;
+  text-transform: uppercase;
+  margin-top: 0pt;
+  margin-bottom: 12pt;
+  border-bottom: 3pt solid #C00000;
+  padding-bottom: 6pt;
+}}
+
+h2 {{
+  font-size: 14pt;
+  font-weight: bold;
+  color: #C00000;
+  margin-top: 18pt;
+  margin-bottom: 10pt;
+  border-left: 4pt solid #C00000;
+  padding-left: 8pt;
+}}
+
+h3 {{
+  font-size: 13pt;
+  font-weight: bold;
+  color: #333333;
+  margin-top: 12pt;
+  margin-bottom: 8pt;
+  font-style: italic;
+}}
+
+p {{
+  text-align: justify;
+  margin-top: 6pt;
+  margin-bottom: 6pt;
+  text-indent: 1.0cm;
+}}
+
+p.no-indent {{
+  text-indent: 0cm;
+}}
+
+p.center {{
+  text-align: center;
+  text-indent: 0cm;
+}}
+
+p.subtitle {{
+  text-align: center;
+  font-style: italic;
+  color: #666666;
+  font-size: 11pt;
+  margin-bottom: 18pt;
+  text-indent: 0cm;
+}}
+
+.info-box {{
+  background-color: #FFF3CD;
+  border-left: 4pt solid #FFA500;
+  padding: 10pt;
+  margin: 12pt 0pt;
+}}
+
+.info-box p {{
+  text-indent: 0cm;
+  margin: 4pt 0pt;
+}}
+
+.conclusion-box {{
+  background-color: #E8F5E9;
+  border: 2pt solid #4CAF50;
+  padding: 10pt;
+  margin: 12pt 0pt;
+}}
+
+.conclusion-box p {{
+  text-indent: 0cm;
+  margin: 4pt 0pt;
+}}
+
+ul {{
+  margin-top: 6pt;
+  margin-bottom: 6pt;
+  padding-left: 30pt;
+}}
+
+li {{
+  text-align: justify;
+  margin-top: 4pt;
+  margin-bottom: 4pt;
+}}
+
+.highlight {{
+  background-color: #FFFF00;
+  font-weight: bold;
+}}
+
+.key-name {{
+  color: #C00000;
+  font-weight: bold;
+}}
+</style>
+</head>
+
+<body lang="{language.upper()}" style='tab-interval:35.4pt'>
+
+{body_html}
+
+</body>
+</html>
+
+------=_NextPart_000_0000_01D00000.00000000--"""
+        
+        return mhtml
+    
+    def _escape_html(self, text: str) -> str:
+        """Escape HTML special characters"""
+        return (text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+            .replace("'", "&#39;"))
+    
+    def _create_chart(self, viz_config: dict) -> BytesIO:
+        """
+        Create a chart from visualization config using matplotlib
+        
+        Args:
+            viz_config: {
+                "type": "bar|line|pie|scatter",
+                "title": "Chart title",
+                "data": {
+                    "labels": [...],
+                    "values": [...],
+                    "colors": [...] (optional)
+                }
+            }
+        
+        Returns:
+            BytesIO: PNG image of the chart
+        """
+        chart_type = viz_config.get("type", "bar")
+        title = viz_config.get("title", "")
+        data = viz_config.get("data", {})
+        
+        labels = data.get("labels", [])
+        values = data.get("values", [])
+        colors = data.get("colors", None)
+        
+        # Create figure with good size for document
+        fig, ax = plt.subplots(figsize=(8, 5))
+        
+        try:
+            if chart_type == "bar":
+                ax.bar(labels, values, color=colors or '#3498db', width=0.6)
+                ax.set_ylabel('Value')
+                
+            elif chart_type == "line":
+                ax.plot(labels, values, marker='o', linewidth=2, 
+                       markersize=8, color=colors[0] if colors else '#2ecc71')
+                ax.set_ylabel('Value')
+                ax.grid(True, alpha=0.3)
+                
+            elif chart_type == "pie":
+                ax.pie(values, labels=labels, autopct='%1.1f%%', 
+                      colors=colors, startangle=90)
+                ax.axis('equal')  # Equal aspect ratio ensures circular pie
+                
+            elif chart_type == "scatter":
+                ax.scatter(labels, values, s=100, alpha=0.6, 
+                          c=colors or '#e74c3c')
+                ax.set_ylabel('Value')
+            
+            # Set title
+            if title:
+                ax.set_title(title, fontsize=14, fontweight='bold', pad=15)
+            
+            # Styling
+            if chart_type != "pie":
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.tick_params(labelsize=10)
+            
+            plt.tight_layout()
+            
+            # Save to BytesIO
+            img_stream = BytesIO()
+            plt.savefig(img_stream, format='png', dpi=200, bbox_inches='tight')
+            img_stream.seek(0)
+            plt.close(fig)
+            
+            return img_stream
+            
+        except Exception as e:
+            logger.error(f"Failed to create chart: {e}")
+            plt.close(fig)
+            raise
+    
+    def _generate_docx(self, structured_data: dict, language: str) -> bytes:
+        """
+        Generate DOCX file from structured data using python-docx
+        
+        Returns bytes of the DOCX file
+        """
+        from docx import Document
+        from docx.shared import Pt, RGBColor, Cm
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from io import BytesIO
+        
+        doc = Document()
+        
+        # Setup page margins (A4)
+        sections = doc.sections
+        for section in sections:
+            section.page_height = Cm(29.7)
+            section.page_width = Cm(21.0)
+            section.top_margin = Cm(2.5)
+            section.bottom_margin = Cm(2.5)
+            section.left_margin = Cm(2.0)
+            section.right_margin = Cm(2.0)
+        
+        # Get document structure
+        title = structured_data.get("title", "Document")
+        subtitle = structured_data.get("subtitle", "")
+        sections_data = structured_data.get("sections", [])
+        visualizations = structured_data.get("visualizations", [])
+        
+        # Add title
+        title_para = doc.add_heading(title, level=0)
+        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if title_para.runs:
+            title_format = title_para.runs[0].font
+            title_format.size = Pt(18)
+            title_format.bold = True
+            title_format.color.rgb = RGBColor(192, 0, 0)
+        
+        # Add subtitle if exists
+        if subtitle:
+            subtitle_para = doc.add_paragraph(subtitle)
+            subtitle_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if subtitle_para.runs:
+                subtitle_format = subtitle_para.runs[0].font
+                subtitle_format.size = Pt(11)
+                subtitle_format.italic = True
+                subtitle_format.color.rgb = RGBColor(102, 102, 102)
+        
+        # Add sections
+        for section_index, section_data in enumerate(sections_data):
+            heading = section_data.get("heading", "")
+            level = section_data.get("level", 1)
+            content_items = section_data.get("content", [])
+            
+            # Add section heading
+            if heading:
+                heading_para = doc.add_heading(heading, level=level)
+                if heading_para.runs:
+                    heading_format = heading_para.runs[0].font
+                    heading_format.color.rgb = RGBColor(192, 0, 0)
+                    if level == 1:
+                        heading_format.size = Pt(14)
+                    elif level == 2:
+                        heading_format.size = Pt(13)
+            
+            # Add content
+            for content_item in content_items:
+                item_type = content_item.get("type", "paragraph")
+                
+                if item_type == "paragraph":
+                    text = content_item.get("text", "")
+                    highlights = content_item.get("highlights", [])
+                    
+                    para = doc.add_paragraph()
+                    para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                    para.paragraph_format.first_line_indent = Cm(1.0)
+                    para.paragraph_format.line_spacing = 1.5
+                    
+                    # Add text with highlights
+                    if highlights:
+                        # Split text by highlights and format
+                        remaining_text = text
+                        for highlight in highlights:
+                            if highlight in remaining_text:
+                                parts = remaining_text.split(highlight, 1)
+                                # Add text before highlight
+                                if parts[0]:
+                                    run = para.add_run(parts[0])
+                                    run.font.name = 'Times New Roman'
+                                    run.font.size = Pt(13)
+                                # Add highlight
+                                highlight_run = para.add_run(highlight)
+                                highlight_run.font.name = 'Times New Roman'
+                                highlight_run.font.size = Pt(13)
+                                highlight_run.font.bold = True
+                                highlight_run.font.color.rgb = RGBColor(0, 112, 192)
+                                # Continue with remaining text
+                                remaining_text = parts[1] if len(parts) > 1 else ""
+                        # Add remaining text
+                        if remaining_text:
+                            run = para.add_run(remaining_text)
+                            run.font.name = 'Times New Roman'
+                            run.font.size = Pt(13)
+                    else:
+                        # No highlights, just add text
+                        run = para.add_run(text)
+                        run.font.name = 'Times New Roman'
+                        run.font.size = Pt(13)
+                
+                elif item_type == "list":
+                    items = content_item.get("items", [])
+                    for list_item in items:
+                        para = doc.add_paragraph(list_item, style='List Bullet')
+                        if para.runs:
+                            para.runs[0].font.name = 'Times New Roman'
+                            para.runs[0].font.size = Pt(13)
+                
+                elif item_type == "info_box":
+                    box_title = content_item.get("title", "THÔNG TIN")
+                    items = content_item.get("items", [])
+                    
+                    # Create info box with background color
+                    box_para = doc.add_paragraph()
+                    box_para.paragraph_format.left_indent = Cm(0.5)
+                    box_para.paragraph_format.space_before = Pt(6)
+                    box_para.paragraph_format.space_after = Pt(6)
+                    
+                    # Add title
+                    title_run = box_para.add_run(box_title + "\n")
+                    title_run.font.name = 'Times New Roman'
+                    title_run.font.size = Pt(13)
+                    title_run.font.bold = True
+                    title_run.font.color.rgb = RGBColor(255, 140, 0)
+                    
+                    # Add items
+                    for item in items:
+                        item_run = box_para.add_run(item + "\n")
+                        item_run.font.name = 'Times New Roman'
+                        item_run.font.size = Pt(13)
+                
+                elif item_type == "highlight_box":
+                    box_title = content_item.get("title", "KẾT LUẬN")
+                    text = content_item.get("text", "")
+                    
+                    # Create highlight box
+                    box_para = doc.add_paragraph()
+                    box_para.paragraph_format.left_indent = Cm(0.5)
+                    box_para.paragraph_format.space_before = Pt(6)
+                    box_para.paragraph_format.space_after = Pt(6)
+                    
+                    # Add title
+                    title_run = box_para.add_run(box_title + "\n")
+                    title_run.font.name = 'Times New Roman'
+                    title_run.font.size = Pt(13)
+                    title_run.font.bold = True
+                    title_run.font.color.rgb = RGBColor(76, 175, 80)
+                    
+                    # Add text
+                    text_run = box_para.add_run(text)
+                    text_run.font.name = 'Times New Roman'
+                    text_run.font.size = Pt(13)
+            
+            # Insert charts after this section if any
+            charts_here = [v for v in visualizations 
+                          if v.get("position") == f"after_section_{section_index}"]
+            
+            for viz_config in charts_here:
+                try:
+                    # Create chart
+                    chart_stream = self._create_chart(viz_config)
+                    
+                    # Add chart to document
+                    from docx.shared import Inches
+                    doc.add_picture(chart_stream, width=Inches(6.5))
+                    
+                    # Add description if available
+                    description = viz_config.get("description", "")
+                    if description:
+                        desc_para = doc.add_paragraph(description)
+                        desc_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        if desc_para.runs:
+                            desc_para.runs[0].font.size = Pt(11)
+                            desc_para.runs[0].font.italic = True
+                            desc_para.runs[0].font.color.rgb = RGBColor(102, 102, 102)
+                    
+                    logger.info(f"Chart inserted: {viz_config.get('title')}")
+                except Exception as e:
+                    logger.error(f"Failed to insert chart: {e}")
+        
+        # Add footer
+        footer_para = doc.add_paragraph("––– HẾT –––")
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        footer_para.paragraph_format.space_before = Pt(24)
+        if footer_para.runs:
+            footer_format = footer_para.runs[0].font
+            footer_format.italic = True
+            footer_format.color.rgb = RGBColor(102, 102, 102)
+            footer_format.bold = True
+        
+        # Save to bytes
+        docx_buffer = BytesIO()
+        doc.save(docx_buffer)
+        docx_buffer.seek(0)
+        
+        return docx_buffer.read()
+
+

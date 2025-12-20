@@ -1,10 +1,17 @@
 """Minimal FastAPI app for testing"""
+# Fix Windows console encoding for Unicode emojis in logs
+import sys
+import io
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr
+from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr, ocr_compare, ai_admin
 from app.api.v1.endpoints import settings as settings_router
 from app.routers import mau_2c
 import logging
@@ -80,6 +87,8 @@ app.include_router(activity_logs.router, prefix=f"{settings.API_PREFIX}/logs", t
 app.include_router(documents.router, prefix=f"{settings.API_PREFIX}/documents", tags=["📄 Document Tools"])
 app.include_router(images.router, prefix=f"{settings.API_PREFIX}/images", tags=["🎨 Image Tools"])
 app.include_router(ocr.router, prefix=f"{settings.API_PREFIX}/ocr", tags=["📝 OCR - Text Recognition"])
+app.include_router(ocr_compare.router, prefix=f"{settings.API_PREFIX}", tags=["🔍 OCR Comparison"])
+app.include_router(ai_admin.router, prefix=f"{settings.API_PREFIX}/ai-admin", tags=["🔑 AI Admin"])
 app.include_router(settings_router.router, prefix=f"{settings.API_PREFIX}/settings", tags=["⚙️ Settings & Configuration"])
 app.include_router(mau_2c.router, tags=["📋 Mẫu 2C - Sơ Yếu Lý Lịch"])
 

@@ -129,12 +129,20 @@ async def login(
     
     Returns JWT access token and user information
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"🔐 Login attempt for user: {credentials.username}")
+    
     # Find user by username or email
+    logger.info(f"📝 Querying database for user: {credentials.username}")
     user = db.query(User).filter(
         (User.username == credentials.username) | (User.email == credentials.username)
     ).first()
+    logger.info(f"✅ User found: {user.username if user else 'None'}")
+    logger.info(f"✅ User found: {user.username if user else 'None'}")
     
     if not user:
+        logger.warning(f"❌ User not found: {credentials.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -142,22 +150,29 @@ async def login(
         )
     
     # Verify password
+    logger.info(f"🔑 Verifying password for user: {user.username}")
     if not verify_password(credentials.password, user.hashed_password):
+        logger.warning(f"❌ Invalid password for user: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    logger.info(f"✅ Password verified for user: {user.username}")
+    
     # Check if user is active
     if not user.is_active:
+        logger.warning(f"❌ Inactive user attempted login: {user.username}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
         )
     
+    logger.info(f"👤 Loading roles and permissions for user: {user.username}")
     # Get user roles and permissions
     roles = [role.name for role in user.roles]
+    logger.info(f"📋 User roles: {roles}")
     permissions = []
     for role in user.roles:
         for perm in role.permissions:
@@ -165,6 +180,7 @@ async def login(
             if perm_str not in permissions:
                 permissions.append(perm_str)
     
+    logger.info(f"🔐 Creating access token for user: {user.username}")
     # Create access token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -178,6 +194,8 @@ async def login(
         },
         expires_delta=access_token_expires
     )
+    
+    logger.info(f"✅ Token created, preparing response for user: {user.username}")
     
     # Prepare response
     user_response = UserResponse(
@@ -198,15 +216,20 @@ async def login(
         expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
     )
     
-    # Log successful login
-    log_auth_action(
-        db=db,
-        user_id=user.id,
-        action="login",
-        details={"username": user.username},
-        request=request
-    )
+    logger.info(f"📝 Logging authentication action for user: {user.username}")
+    # Log successful login (with error handling for missing activity_logs table)
+    try:
+        log_auth_action(
+            db=db,
+            user_id=user.id,
+            action="login",
+            details={"username": user.username},
+            request=request
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Could not log authentication action: {e}")
     
+    logger.info(f"🎉 Login successful for user: {user.username}")
     return LoginResponse(
         success=True,
         message="Login successful",

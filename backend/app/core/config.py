@@ -1,6 +1,15 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Force load .env file from backend directory
+backend_dir = Path(__file__).parent.parent.parent  # Navigate to backend/
+env_path = backend_dir / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
+    print(f"✅ Loaded .env from {env_path}")
 
 
 class Settings(BaseSettings):
@@ -27,7 +36,7 @@ class Settings(BaseSettings):
     
     # Database
     # DATABASE_URL: str = "postgresql://utility_user:password@localhost:5432/utility_db"
-    DATABASE_URL: str = "sqlite:///D:/thang/utility-server/backend/utility.db"  # Absolute path
+    DATABASE_URL: str = "sqlite:///./utility.db"  # Relative path in backend folder
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -95,8 +104,14 @@ class Settings(BaseSettings):
     PDF_SERVICES_CLIENT_SECRET: Optional[str] = None
     ADOBE_ORG_ID: Optional[str] = None
     
-    # Google Gemini API
+    # Google Gemini AI
+    USE_GEMINI_API: bool = False
     GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-1.5-flash"  # or gemini-1.5-pro
+    
+    # Anthropic Claude AI
+    USE_CLAUDE_API: bool = False
+    ANTHROPIC_API_KEY: Optional[str] = None
     
     # Technology Priority Settings (comma-separated, first = highest priority)
     # Format: "adobe,pypdf" = Try Adobe first, fallback to pypdf

@@ -7,11 +7,13 @@ from fastapi.responses import FileResponse, StreamingResponse, Response
 from typing import List, Optional
 from pathlib import Path
 from urllib.parse import quote
+from datetime import datetime
 import zipfile
 import io
 import asyncio
 import aiofiles
 import logging
+import time
 
 from app.services.document_service import DocumentService
 from pathlib import Path
@@ -889,6 +891,125 @@ async def ocr_pdf(
         raise
     finally:
         await doc_service.cleanup_file(input_path)
+
+
+@router.post("/pdf/ocr-smart")
+async def smart_pdf_ocr(
+    file: UploadFile = File(..., description="PDF file"),
+    ai_engine: str = Form("gemini", description="AI engine: gemini or claude"),
+    language: str = Form("vi", description="Language for OCR: vi, en")
+):
+    """
+    🤖 Smart PDF OCR - AI-powered text extraction for scanned PDFs
+    
+    **Smart Detection:**
+    - Automatically detects if PDF is scanned (image-based)
+    - Uses direct text extraction for text-based PDFs (fast & free)
+    - Uses AI OCR (Gemini/Claude) only for scanned PDFs
+    
+    **AI Engines:**
+    - `gemini`: Fast & cost-effective (~$0.000031/page)
+    - `claude`: Highest accuracy (~$0.001464/page)
+    
+    **Languages:**
+    - `vi`: Tiếng Việt (recommended for Vietnamese docs)
+    - `en`: English
+    
+    **Use Cases:**
+    - Extract text from scanned documents
+    - OCR old paper documents converted to PDF
+    - Process image-based PDFs with high accuracy
+    """
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(400, "File must be a PDF")
+    
+    # Save uploaded file
+    input_path = await doc_service.save_upload_file(file)
+    
+    try:
+        # Smart OCR processing
+        result = await doc_service.smart_pdf_ocr(
+            input_path, 
+            ai_engine=ai_engine,
+            language=language
+        )
+        
+        return {
+            "success": True,
+            "filename": file.filename,
+            **result
+        }
+        
+    except HTTPException:
+        raise
+    finally:
+        await doc_service.cleanup_file(input_path)
+
+
+@router.post("/generate-report")
+async def generate_ai_report(
+    text_input: str = Form(..., description="Text content to analyze"),
+    report_title: str = Form(None, description="Custom report title (optional)"),
+    language: str = Form("vi", description="Language: vi or en"),
+):
+    """
+    🤖 AI Report Generator - Create beautiful Word reports from text
+    
+    **How it works:**
+    1. AI analyzes your text and structures it logically
+    2. Creates comparison tables, sections, bullet points
+    3. Generates professional Word document with colors and formatting
+    
+    **Features:**
+    - 📊 Comparison tables with styled headers
+    - 🎨 Blue headings and colored elements
+    - 📝 Organized sections with bullet points
+    - ✨ Professional spacing and layout
+    - 🌍 Vietnamese & English support
+    
+    **Example use cases:**
+    - Compare technologies/products/methods
+    - Analyze data and create reports
+    - Structure meeting notes into formal reports
+    - Convert chat discussions into documents
+    
+    **Cost:** ~$0.001-0.005 per report
+    """
+    try:
+        from app.services.ai_report_generator import AIReportGenerator
+        
+        # Create generator
+        output_dir = Path("./temp_outputs")
+        output_dir.mkdir(exist_ok=True)
+        generator = AIReportGenerator(output_dir=output_dir)
+        
+        # Generate report
+        output_path = await generator.generate_comparison_report(
+            text_input=text_input,
+            title=report_title,
+            language=language
+        )
+        
+        # Return Word file
+        if not output_path.exists():
+            raise HTTPException(404, "Report file not generated")
+        
+        return FileResponse(
+            str(output_path),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=f"AI_Report_{int(time.time())}.docx",
+            headers={
+                "X-Technology-Engine": "gemini",
+                "X-Technology-Model": "gemini-2.0-flash-exp",
+                "X-Technology-Type": "cloud",
+                "X-Technology-Feature": "AI Report Generator"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Report generation failed: {str(e)}")
 
 
 @router.post("/pdf/extract-content")
@@ -2498,6 +2619,176 @@ async def electronic_seal_pdf(
             await doc_service.cleanup_file(seal_image_path)
         raise e
 
+
+# ==================== TEXT TO WORD (MHTML) ====================
+
+@router.post("/text-to-word-smart")
+async def text_to_word_smart(
+    text: str = Form(..., description="Plain text input"),
+    provider: str = Form("gemini", description="AI provider: 'gemini' or 'claude'"),
+    model: Optional[str] = Form(None, description="Specific model name (optional)"),
+    language: str = Form("vi", description="Language code: 'vi', 'en', etc."),
+):
+    """
+    🎨 Convert plain text to beautifully formatted Word document using AI
+    
+    **Technology:** DOCX format (python-docx) - 100% Microsoft Word compatible
+    **AI Providers:** Gemini or Claude for intelligent text structuring
+    
+    **How it works:**
+    1. AI analyzes your text and creates structured sections
+    2. Automatically identifies headings, paragraphs, lists
+    3. Highlights important names, terms, and info boxes
+    4. Generates professional DOCX with perfect formatting
+    
+    **Features:**
+    - ✅ Smart section detection (H1, H2, H3)
+    - ✅ Auto-detect important information → info boxes
+    - ✅ Auto-detect conclusions → highlight boxes
+    - ✅ Proper Vietnamese formatting (thụt đầu dòng 1cm)
+    - ✅ A4 page size with standard margins (2.5cm top/bottom, 2cm left/right)
+    - ✅ Times New Roman 13pt (chuẩn công văn)
+    - ✅ Beautiful colors and professional styling
+    - ✅ Perfect Word compatibility (no more HTML encoding issues!)
+    
+    **Supported Providers:**
+    - **Gemini** (Google): Fast, cost-effective, great for Vietnamese
+    - **Claude** (Anthropic): High quality, best reasoning
+    
+    **Output:** `.docx` file (OpenXML format) - 100% compatible with:
+    - Microsoft Word 2007+
+    - Google Docs
+    - LibreOffice Writer
+    - WPS Office
+    - Apple Pages
+    
+    **Example Input:**
+    ```
+    Báo cáo dự án ABC
+    
+    Giới thiệu: Dự án ABC được khởi động...
+    
+    Mục tiêu chính:
+    - Tăng hiệu quả 30%
+    - Giảm chi phí 20%
+    
+    Kết luận: Dự án hoàn thành đúng tiến độ.
+    ```
+    
+    **AI Auto-detects:**
+    - Title: "Báo cáo dự án ABC"
+    - Sections: "Giới thiệu", "Mục tiêu chính", "Kết luận"
+    - Lists: Bullet points
+    - Highlight boxes: Conclusion section
+    """
+    try:
+        # Log incoming request
+        logger.info(f"🎨 Text-to-Word request: provider={provider}, model={model}, language={language}, text_length={len(text) if text else 0}")
+        
+        # Validate inputs
+        if not text or len(text.strip()) < 10:
+            raise HTTPException(400, "Text must be at least 10 characters")
+        
+        if provider not in ["gemini", "claude"]:
+            raise HTTPException(400, "Provider must be 'gemini' or 'claude'")
+        
+        if language not in ["vi", "en", "zh", "ja", "ko", "fr", "de", "es"]:
+            raise HTTPException(400, "Unsupported language code")
+        
+        # Generate DOCX (using python-docx, not MHTML)
+        docx_bytes, ai_usage = await doc_service.text_to_word_mhtml(
+            text=text,
+            provider=provider,
+            model=model,
+            language=language
+        )
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"document_{timestamp}.docx"
+        
+        # Return as downloadable file
+        response = Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{encode_filename(filename)}"'
+            }
+        )
+        
+        # Add metadata headers
+        response.headers["X-Technology-Engine"] = provider
+        response.headers["X-Technology-Name"] = f"{provider.title()} AI"
+        response.headers["X-Technology-Model"] = ai_usage.get("model", "unknown")
+        response.headers["X-Technology-Quality"] = "10/10"  # DOCX quality (perfect compatibility)
+        response.headers["X-Technology-Type"] = "ai-docx"
+        response.headers["X-Input-Tokens"] = str(ai_usage.get("input_tokens", 0))
+        response.headers["X-Output-Tokens"] = str(ai_usage.get("output_tokens", 0))
+        response.headers["X-Processing-Time-Ms"] = str(int(ai_usage.get("processing_time_ms", 0)))
+        
+        return response
+        
+    except HTTPException as he:
+        logger.error(f"❌ HTTPException in text-to-word: {he.status_code} - {he.detail}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Text to Word error: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(500, f"Failed to generate Word document: {str(e)}")
+
+
+@router.get("/ai-providers")
+async def get_ai_providers():
+    """
+    Get available AI providers for text-to-word conversion
+    
+    Returns list of providers with their models and pricing
+    """
+    from app.services.document_service import GEMINI_MODELS
+    
+    return {
+        "providers": [
+            {
+                "id": "gemini",
+                "name": "Google Gemini",
+                "description": "Fast, cost-effective, great for Vietnamese",
+                "status": "available",
+                "models": [
+                    {
+                        "id": model_id,
+                        **model_info
+                    }
+                    for model_id, model_info in GEMINI_MODELS.items()
+                    if model_info.get("series") in ["3.0", "2.5"]  # Only 3.0 and 2.5+
+                ],
+                "recommended": True
+            },
+            {
+                "id": "claude",
+                "name": "Anthropic Claude",
+                "description": "High quality reasoning and formatting",
+                "status": "available",
+                "models": [
+                    {
+                        "id": "claude-sonnet-4-20250514",
+                        "name": "Claude Sonnet 4.0 (Latest)",
+                        "quality": 10,
+                        "speed": 8,
+                        "pricing": {"input": 3.00, "output": 15.00}
+                    },
+                    {
+                        "id": "claude-3-7-sonnet-20250219",
+                        "name": "Claude 3.7 Sonnet",
+                        "quality": 9.8,
+                        "speed": 8,
+                        "pricing": {"input": 3.00, "output": 15.00}
+                    }
+                ],
+                "recommended": False
+            }
+        ]
+    }
 
 
 

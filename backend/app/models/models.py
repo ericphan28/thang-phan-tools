@@ -5,66 +5,14 @@ from datetime import datetime
 from app.core.database import Base
 
 
-# Many-to-Many relationship table for User and Role
-user_roles = Table(
-    'user_roles',
-    Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
-    Column('role_id', Integer, ForeignKey('roles.id'), primary_key=True)
-)
-
-
-class User(Base):
-    """User model for authentication"""
-    __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, unique=True, index=True, nullable=False)
-    username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    full_name = Column(String, nullable=True)
-    is_active = Column(Boolean, default=True)
-    is_superuser = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    api_logs = relationship("APILog", back_populates="user")
-    roles = relationship("Role", secondary=user_roles, back_populates="users")
-    api_keys = relationship("APIKey", back_populates="user")
-
-
-class Role(Base):
-    """Role model for RBAC"""
-    __tablename__ = "roles"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    users = relationship("User", secondary=user_roles, back_populates="roles")
-    permissions = relationship("Permission", back_populates="role", cascade="all, delete-orphan")
-
-
-class Permission(Base):
-    """Permission model for fine-grained access control"""
-    __tablename__ = "permissions"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False)
-    resource = Column(String, nullable=False, index=True)  # e.g., "image", "document", "user"
-    action = Column(String, nullable=False, index=True)    # e.g., "read", "write", "delete"
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    # Relationships
-    role = relationship("Role", back_populates="permissions")
+# Import User and Role from auth_models to avoid duplicates
+from app.models.auth_models import User, Role, Permission
 
 
 class APILog(Base):
     """API usage logging"""
     __tablename__ = "api_logs"
+    __table_args__ = {"extend_existing": True}
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -78,12 +26,13 @@ class APILog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     
     # Relationships
-    user = relationship("User", back_populates="api_logs")
+    user = relationship("User")
 
 
 class ProcessedFile(Base):
     """Track processed files"""
     __tablename__ = "processed_files"
+    __table_args__ = {"extend_existing": True}
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -101,6 +50,7 @@ class ProcessedFile(Base):
 class APIKey(Base):
     """API Keys for authentication"""
     __tablename__ = "api_keys"
+    __table_args__ = {"extend_existing": True}
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -112,4 +62,98 @@ class APIKey(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    user = relationship("User", back_populates="api_keys")
+    user = relationship("User")
+
+
+class AIProviderKey(Base):
+    """AI Provider API Keys (Gemini, Claude, Adobe, etc.)"""
+    __tablename__ = "ai_provider_keys"
+    __table_args__ = {"extend_existing": True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    provider = Column(String, nullable=False, index=True)  # gemini, claude, adobe
+    key_name = Column(String, nullable=False)  # Display name
+    api_key = Column(String, nullable=False)  # Encrypted key
+    org_id = Column(String, nullable=True)  # For providers that need org ID (Adobe)
+    client_id = Column(String, nullable=True)  # For OAuth providers
+    client_secret = Column(String, nullable=True)  # For OAuth providers
+    is_active = Column(Boolean, default=True)
+    is_primary = Column(Boolean, default=False)  # Primary key for this provider
+    monthly_limit = Column(Float, nullable=True)  # Monthly spending limit in USD
+    rate_limit_rpm = Column(Integer, nullable=True)  # Requests per minute limit
+    last_used_at = Column(DateTime, nullable=True)
+    last_error = Column(Text, nullable=True)
+    error_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    usage_logs = relationship("AIUsageLog", back_populates="provider_key")
+
+
+class AIUsageLog(Base):
+    """Track AI API usage for billing and monitoring"""
+    __tablename__ = "ai_usage_logs"
+    __table_args__ = {"extend_existing": True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    provider_key_id = Column(Integer, ForeignKey("ai_provider_keys.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Request info
+    operation = Column(String, nullable=False, index=True)  # ocr, chat, vision, etc.
+    model = Column(String, nullable=False)  # gemini-2.5-flash, claude-sonnet-4, etc.
+    request_id = Column(String, nullable=True)  # Provider's request ID
+    
+    # Token usage
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    
+    # Cost (in USD)
+    input_cost = Column(Float, default=0.0)
+    output_cost = Column(Float, default=0.0)
+    total_cost = Column(Float, default=0.0)
+    
+    # Performance
+    processing_time_ms = Column(Float, nullable=True)
+    
+    # Status
+    status = Column(String, default="success")  # success, error, timeout
+    error_message = Column(Text, nullable=True)
+    
+    # Metadata
+    request_metadata = Column(Text, nullable=True)  # JSON string for extra info
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    provider_key = relationship("AIProviderKey", back_populates="usage_logs")
+
+
+class AIBillingSummary(Base):
+    """Monthly billing summary per provider"""
+    __tablename__ = "ai_billing_summary"
+    __table_args__ = {"extend_existing": True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    provider = Column(String, nullable=False, index=True)  # gemini, claude, adobe
+    period = Column(String, nullable=False, index=True)  # YYYY-MM format
+    
+    # Usage totals
+    total_requests = Column(Integer, default=0)
+    total_input_tokens = Column(Integer, default=0)
+    total_output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    
+    # Cost totals (USD)
+    total_input_cost = Column(Float, default=0.0)
+    total_output_cost = Column(Float, default=0.0)
+    total_cost = Column(Float, default=0.0)
+    
+    # Stats
+    avg_response_time_ms = Column(Float, nullable=True)
+    error_count = Column(Integer, default=0)
+    success_rate = Column(Float, default=100.0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
