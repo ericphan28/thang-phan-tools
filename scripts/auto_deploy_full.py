@@ -15,7 +15,7 @@ VPS_IP = "165.99.59.47"
 VPS_USER = "root"
 VPS_PASSWORD = "@8Alm523jIqS"
 VPS_PATH = "/opt/utility-server"
-LOCAL_PATH = r"D:\thang\utility-server"
+LOCAL_PATH = r"D:\Thang\thang-phan-tools"
 
 def print_header(text):
     print("\n" + "=" * 60)
@@ -215,9 +215,13 @@ def deploy_utility_server(client):
     
     deploy_script = f"""
 cd {VPS_PATH}
-echo "  Building and starting containers..."
+echo "  Building containers with cache..."
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+docker-compose build --build-arg BUILDKIT_INLINE_CACHE=1
+echo "  Starting containers..."
 docker-compose down 2>/dev/null || true
-docker-compose up -d --build
+docker-compose up -d
 echo "  Waiting for containers to start..."
 sleep 15
 echo ""

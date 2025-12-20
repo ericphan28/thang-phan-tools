@@ -5,7 +5,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install ONLY runtime dependencies (no dev tools)
-RUN apt-get update && apt-get install -y \
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -y \
     # OpenCV runtime dependencies
     libsm6 \
     libxext6 \
@@ -26,8 +27,9 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first (for caching)
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+# Install Python dependencies with pip cache
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir email-validator==2.1.0 && \
     pip install --no-cache-dir -r requirements.txt
 

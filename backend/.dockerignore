@@ -1,0 +1,62 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Tests
+tests/
+test_*.py
+*_test.py
+pytest_cache/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+uploads/
+temp_uploads/
+temp/
+logs/
+*.log
+
+# Models (download khi chạy)
+models/
+
+# Git
+.git/
+.gitignore
+
+# Documentation (không cần trong image)
+*.md
+docs/
+
+# Development tools
+.pre-commit-config.yaml
+.flake8
+.mypy_cache/
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Alembic (đã có trong code)
+alembic.ini
