@@ -30,6 +30,7 @@ Pillow==10.1.0
 pillow-heif==0.14.0
 numpy==1.24.3
 scikit-image==0.22.0
+matplotlib==3.10.8
 # rembg==2.0.52  # DISABLED: Requires PyTorch (900MB) - uncomment if need background removal
 
 # Document Processing
