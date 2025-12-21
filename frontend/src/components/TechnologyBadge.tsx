@@ -1,7 +1,7 @@
 // frontend/src/components/TechnologyBadge.tsx
 import React from 'react';
 
-export type TechnologyType = 'adobe' | 'gotenberg' | 'pdf2docx' | 'pdfplumber' | 'gemini' | 'pypdf' | 'tesseract' | 'pillow' | 'reportlab' | 'pypdfium2';
+export type TechnologyType = 'adobe' | 'gotenberg' | 'pdf2docx' | 'pdfplumber' | 'gemini' | 'claude' | 'pypdf' | 'tesseract' | 'pillow' | 'reportlab' | 'pypdfium2';
 
 interface TechnologyBadgeProps {
   tech: TechnologyType;
@@ -49,6 +49,14 @@ const TECH_CONFIG = {
     bgColor: '#ECFDF5',
     quality: 'Premium',
     description: 'Best for Vietnamese, tables'
+  },
+  claude: {
+    name: 'Anthropic Claude',
+    icon: '✨',
+    color: '#A855F7',
+    bgColor: '#F3E8FF',
+    quality: 'Premium',
+    description: 'High accuracy OCR'
   },
   pypdf: {
     name: 'PyPDF',

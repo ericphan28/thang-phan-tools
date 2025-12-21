@@ -13,6 +13,11 @@ import ActivityLogsPage from './pages/ActivityLogsPage';
 import ToolsPage from './pages/ToolsPage';
 import AdobePdfPage from './pages/AdobePdfPage';
 import Mau2CPage from './pages/Mau2CPage';
+import OCRDemoPage from './pages/OCRDemoPage';
+import AIAdminDashboardPage from './pages/AIAdminDashboardPage';
+import AIKeysManagementPage from './pages/AIKeysManagementPage';
+import TextToWordPage from './pages/TextToWordPage';
+import DataVisualizationPage from './pages/DataVisualizationPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -87,6 +92,11 @@ function App() {
               <Route path="tools" element={<ToolsPage />} />
               <Route path="adobe-pdf" element={<AdobePdfPage />} />
               <Route path="mau-2c" element={<Mau2CPage />} />
+              <Route path="ocr-demo" element={<OCRDemoPage />} />
+              <Route path="text-to-word" element={<TextToWordPage />} />
+              <Route path="data-visualization" element={<DataVisualizationPage />} />
+              <Route path="ai-admin" element={<AIAdminDashboardPage />} />
+              <Route path="ai-keys" element={<AIKeysManagementPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

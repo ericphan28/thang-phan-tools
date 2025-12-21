@@ -81,6 +81,15 @@ export default function AdobePdfPage() {
   const [sealPin, setSealPin] = useState<string>('');
   const [sealVisible, setSealVisible] = useState<boolean>(true);
 
+  // Smart PDF OCR state
+  const [ocrFile, setOcrFile] = useState<File | null>(null);
+  const [aiEngine, setAiEngine] = useState<'gemini' | 'claude'>('gemini');
+  const [ocrLanguage, setOcrLanguage] = useState<'vi' | 'en'>('vi');
+  const [ocrResult, setOcrResult] = useState<any>(null);
+
+  // Smart PDF -> Word state
+
+
   // Help modal state
   const [showGuide, setShowGuide] = useState<boolean>(false);
   const [currentFeature, setCurrentFeature] = useState<string>('');
@@ -558,6 +567,57 @@ export default function AdobePdfPage() {
       setCurrentOperation('');
     }
   };
+
+  const handleSmartOcr = async () => {
+    if (!ocrFile) {
+      toast.error('Vui lòng upload file PDF');
+      return;
+    }
+
+    setLoading(true);
+    setCurrentOperation(`Đang OCR với ${aiEngine === 'gemini' ? 'Gemini' : 'Claude'}...`);
+    setOcrResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', ocrFile);
+      formData.append('ai_engine', aiEngine);
+      formData.append('language', ocrLanguage);
+
+      const response = await axios.post(`${API_BASE}/documents/pdf/ocr-smart`, formData);
+      
+      setOcrResult(response.data);
+      
+      const processing = response.data.processing || {};
+      const pdfType = processing.pdf_type === 'text_based' ? 'Text-based' : 'Scanned';
+      const method = processing.method === 'direct_extraction' ? 'Trích xuất trực tiếp' : 'AI OCR';
+      
+      if (processing.method === 'ai_ocr') {
+        const aiUsage = response.data.ai_usage || {};
+        toast.success(
+          `✅ ${pdfType} PDF - ${method}\n` +
+          `💰 Chi phí: $${aiUsage.total_cost_usd?.toFixed(6) || 0}\n` +
+          `⏱️ Thời gian: ${processing.time_seconds}s`,
+          { duration: 5000 }
+        );
+      } else {
+        toast.success(
+          `✅ ${pdfType} PDF - ${method}\n` +
+          `💰 Chi phí: $0.00 (miễn phí)\n` +
+          `⏱️ Thời gian: ${processing.time_seconds}s`,
+          { duration: 5000 }
+        );
+      }
+    } catch (error: any) {
+      console.error('Smart OCR error:', error);
+      await showErrorToast(error);
+    } finally {
+      setLoading(false);
+      setCurrentOperation('');
+    }
+  };
+
+
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -1337,6 +1397,129 @@ export default function AdobePdfPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Smart PDF OCR */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Eye className="w-5 h-5 text-purple-600" />
+            Smart PDF OCR - Trích Xuất Text Thông Minh
+            <TechnologyBadge tech="gemini" />
+            <TechnologyBadge tech="claude" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+            <p className="text-blue-800 font-medium mb-1">🧠 Smart Detection:</p>
+            <p className="text-blue-700">• Text-based PDF → Trích xuất trực tiếp (nhanh & miễn phí)</p>
+            <p className="text-blue-700">• Scanned PDF → AI OCR (Gemini $0.000031/page, Claude $0.001464/page)</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">File PDF:</label>
+            <input
+              type="file"
+              accept=".pdf"
+              onChange={(e) => e.target.files && setOcrFile(e.target.files[0])}
+              className="block w-full text-sm text-gray-500
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-semibold
+                file:bg-purple-50 file:text-purple-700
+                hover:file:bg-purple-100"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">AI Engine:</label>
+              <select
+                value={aiEngine}
+                onChange={(e) => setAiEngine(e.target.value as 'gemini' | 'claude')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="gemini">Gemini 2.5 Flash (Nhanh & Rẻ)</option>
+                <option value="claude">Claude Sonnet 4 (Chính xác)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Ngôn ngữ:</label>
+              <select
+                value={ocrLanguage}
+                onChange={(e) => setOcrLanguage(e.target.value as 'vi' | 'en')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="vi">Tiếng Việt</option>
+                <option value="en">English</option>
+              </select>
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSmartOcr}
+            disabled={loading || !ocrFile}
+            className="w-full"
+          >
+            {loading && currentOperation.includes('OCR') ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {currentOperation}
+              </>
+            ) : (
+              <>
+                <Eye className="w-4 h-4 mr-2" />
+                Trích Xuất Text
+              </>
+            )}
+          </Button>
+
+          {ocrResult && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="bg-gray-50 p-2 rounded">
+                  <p className="text-gray-500">Loại PDF:</p>
+                  <p className="font-semibold">
+                    {ocrResult.processing?.pdf_type === 'text_based' ? '📝 Text-based' : '🖼️ Scanned'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <p className="text-gray-500">Phương pháp:</p>
+                  <p className="font-semibold">
+                    {ocrResult.processing?.method === 'direct_extraction' ? '⚡ Trực tiếp' : '🤖 AI OCR'}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <p className="text-gray-500">Thời gian:</p>
+                  <p className="font-semibold">{ocrResult.processing?.time_seconds}s</p>
+                </div>
+              </div>
+
+              {ocrResult.ai_usage && (
+                <div className="bg-green-50 border border-green-200 rounded p-3 text-sm">
+                  <p className="text-green-800 font-medium">💰 Chi phí AI:</p>
+                  <p className="text-green-700">• Tổng: ${ocrResult.ai_usage.total_cost_usd?.toFixed(6)}</p>
+                  <p className="text-green-700">• Mỗi trang: ${ocrResult.ai_usage.cost_per_page?.toFixed(6)}</p>
+                  <p className="text-green-700">• Tokens: {ocrResult.ai_usage.total_tokens}</p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Text đã trích xuất:</label>
+                <textarea
+                  value={ocrResult.text || ''}
+                  readOnly
+                  rows={10}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {ocrResult.char_count} ký tự, {ocrResult.word_count} từ
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Adobe Info Banner */}
       <Card className="mt-6 border-red-200 bg-gradient-to-r from-red-50 to-pink-50">

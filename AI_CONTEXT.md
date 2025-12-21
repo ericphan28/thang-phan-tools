@@ -6,6 +6,70 @@ Khi bắt đầu chat mới, chỉ cần attach file này và AI sẽ có đầy
 
 ---
 
+## ✅ QUICK START (DEV - VS CODE TASKS)
+
+Workspace hiện tại: `d:\Thang\thang-phan-tools`
+
+Chạy dev đúng chuẩn (ưu tiên theo `copilot-instructions.md`):
+- VS Code → `Run Task` → **Start All Servers**
+      - Backend: `http://localhost:8000` (FastAPI)
+      - Frontend: `http://localhost:5173` (Vite)
+- Healthcheck backend: `GET http://localhost:8000/health`
+
+Lưu ý Windows encoding (khi log có emoji/ký tự Unicode):
+- Nếu gặp lỗi encode trong console, chạy backend với UTF-8 env (`PYTHONUTF8=1`, `PYTHONIOENCODING=utf-8`) hoặc dùng script `start-backend-utf8.ps1`.
+
+---
+
+## 🆕 RECENT FEATURE: SMART PDF → WORD (GEMINI)
+
+Mục tiêu: Convert PDF (text-based hoặc scanned) sang `.docx` cố gắng giữ bố cục (heading, đoạn, list, bảng).
+
+Luồng xử lý:
+1. Gemini đọc PDF → sinh **Markdown** có cấu trúc
+2. Backend parse Markdown → tạo `.docx` bằng `python-docx`
+
+Endpoint:
+- `POST /api/v1/documents/pdf/to-word-smart`
+      - Multipart form:
+            - `file`: PDF
+            - `language`: `vi` | `en` (default `vi`)
+      - Response: file `.docx`
+
+Code liên quan:
+- Backend service: `backend/app/services/document_service.py` (các hàm `pdf_to_word_smart`, `_pdf_to_markdown_gemini`, `_markdown_to_word`)
+- API route: `backend/app/api/v1/endpoints/documents.py` (`/pdf/to-word-smart`)
+- Test script: `test_pdf_to_word_smart.py`
+
+Yêu cầu API key Gemini:
+- Ưu tiên lấy từ DB (AI Admin): bảng `ai_provider_keys` provider=`gemini` (primary + active)
+- Fallback: env `GOOGLE_API_KEY` trong `backend/.env`
+
+AI usage tracking:
+- Hệ thống có `/api/v1/ai-admin/*` để quản lý provider keys và usage logs (Gemini/Claude).
+
+---
+
+## 🧪 HOW TO TEST (UI / DEV)
+
+1) Start servers bằng task **Start All Servers**.
+2) Mở Frontend: `http://localhost:5173`.
+3) Login (nếu bật auth) rồi vào trang Tools/Adobe PDF (tuỳ routing hiện tại).
+4) Nếu UI chưa có nút “PDF → Word Smart” thì test qua:
+       - Swagger: `http://localhost:8000/docs` → tìm `POST /api/v1/documents/pdf/to-word-smart`
+       - Script: chạy `python test_pdf_to_word_smart.py` (chỉ nên để output ngắn gọn, tránh emoji nếu console lỗi).
+
+---
+
+## 🧠 NEW CHAT CHECKLIST (TRÁNH COPILOT 408 TIMEOUT)
+
+Nếu Copilot báo `408 Timed out reading request body` trong chat mới:
+- Chỉ attach **một** file này: `AI_CONTEXT.md` (đừng dán logs dài / conversation summary dài)
+- Mô tả vấn đề 3–6 dòng, gửi từng bước (Step 1/Step 2) thay vì 1 prompt siêu dài
+- Nếu cần log: gửi 30–80 dòng liên quan trực tiếp thôi
+
+---
+
 ## 📊 PROJECT SUMMARY
 
 **Project Name**: Utility Server  
