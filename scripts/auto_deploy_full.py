@@ -215,6 +215,11 @@ def deploy_utility_server(client):
     
     deploy_script = f"""
 cd {VPS_PATH}
+echo "  Building frontend..."
+cd frontend
+npm install --legacy-peer-deps
+npm run build
+cd ..
 echo "  Building containers with cache..."
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
