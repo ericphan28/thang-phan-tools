@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.0.5"  # Test incremental pull speed
+    version="2.1.0"  # Optimized Docker image (2GB → ~700MB)
 )
 
 # Add validation error handler

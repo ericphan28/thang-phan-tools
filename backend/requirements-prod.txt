@@ -1,4 +1,4 @@
-# Production (runtime) dependencies
+# Production (runtime) dependencies - OPTIMIZED (reduced from 2GB to ~600MB)
 
 # Core dependencies
 fastapi==0.104.1
@@ -27,14 +27,14 @@ python-dotenv==1.0.0
 bcrypt==4.1.1
 email-validator==2.1.0
 
-# Image Processing
+# Image Processing (OPTIMIZED: headless saves ~70MB)
 Pillow==10.1.0
 pillow-heif==0.14.0
 numpy==1.24.3
-matplotlib==3.10.8
+matplotlib==3.10.8  # Used for AI data visualization charts (_create_chart)
 
-# Document Processing
-opencv-python==4.11.0.86
+# Document Processing (OPTIMIZED: use headless opencv)
+opencv-python-headless==4.11.0.86  # Changed from opencv-python (saves ~70MB)
 pypdf==4.0.0
 pdf2docx==0.5.6
 python-docx==1.1.0
@@ -57,9 +57,9 @@ google-generativeai==0.3.2
 # OCR
 pytesseract==0.3.10
 
-# Text Processing
-nltk==3.8.1
-textblob==0.17.1
+# Text Processing - REMOVED (not used in code)
+# nltk==3.8.1  # REMOVED: saves ~14MB
+# textblob==0.17.1  # REMOVED: saves ~2MB
 
 # HTTP & Networking
 httpx==0.25.1

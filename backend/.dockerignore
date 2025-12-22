@@ -28,6 +28,29 @@ pytest_cache/
 uploads/
 temp_uploads/
 temp/
+output/
+
+# Backup and unused files
+*_backup.py
+*_old.py
+*_bak.py
+*.bak
+*.backup
+
+# Database files (should be on volume)
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation
+*.md
+docs/
+
+# Test output files
+*.docx
+*.xlsx
+*.pptx
+test_output*
 logs/
 *.log
 
