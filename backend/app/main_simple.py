@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.1.2"  # Test Watchtower auto-deploy
+    version="2.1.3"  # Test force deploy timing
 )
 
 # Add validation error handler
