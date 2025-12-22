@@ -35,7 +35,7 @@ import logging
 # Document libraries
 from docx import Document
 import pypdf
-from pdf2docx import Converter as PDFToWordConverter
+# from pdf2docx import Converter as PDFToWordConverter  # REMOVED: requires opencv-python + PyMuPDF (230MB bloat!)
 from pptx import Presentation
 from openpyxl import load_workbook
 import pypdfium2 as pdfium
@@ -961,21 +961,14 @@ class DocumentService:
         end_page: Optional[int] = None
     ) -> Path:
         """
-        Convert PDF to Word using pdf2docx (fallback)
-        Good quality, pure Python, free
+        DISABLED: pdf2docx requires opencv-python + PyMuPDF (230MB bloat)
+        Use Adobe PDF Services or Gemini OCR instead
         """
-        try:
-            # pdf2docx is pure Python, works cross-platform
-            cv = PDFToWordConverter(str(input_file))
-            cv.convert(str(output_path), start=start_page, end=end_page)
-            cv.close()
-            
-            logger.info(f"pdf2docx conversion successful: {output_path}")
-            return output_path
-            
-        except Exception as e:
-            logger.error(f"pdf2docx conversion error: {e}")
-            raise HTTPException(500, f"PDF to Word conversion failed: {str(e)}")
+        logger.error("pdf2docx disabled to reduce Docker image size")
+        raise HTTPException(
+            501, 
+            "pdf2docx method disabled. Use 'adobe' or 'gemini' conversion method"
+        )
     
     async def _pdf_to_word_gemini(
         self,

@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.1.0"  # Optimized Docker image (2GB → ~700MB)
+    version="2.1.1"  # Remove pdf2docx (saves 230MB): opencv-python + PyMuPDF
 )
 
 # Add validation error handler

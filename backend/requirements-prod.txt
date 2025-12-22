@@ -33,10 +33,12 @@ pillow-heif==0.14.0
 numpy==1.24.3
 matplotlib==3.10.8  # Used for AI data visualization charts (_create_chart)
 
-# Document Processing (OPTIMIZED: use headless opencv)
-opencv-python-headless==4.11.0.86  # Changed from opencv-python (saves ~70MB)
+# Document Processing (HEAVILY OPTIMIZED)
+# REMOVED pdf2docx (requires opencv-python + PyMuPDF = 230MB bloat!)
+# Use Adobe PDF Services or pypdfium2 for PDF to Word conversion instead
+opencv-python-headless==4.11.0.86  # Headless version (no GUI) saves ~70MB vs opencv-python
 pypdf==4.0.0
-pdf2docx==0.5.6
+# pdf2docx==0.5.6  # REMOVED: pulls opencv-python + PyMuPDF (230MB)
 python-docx==1.1.0
 docxtpl==0.16.8
 python-pptx==0.6.23
