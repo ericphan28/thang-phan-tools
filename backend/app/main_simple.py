@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.1.1"  # Remove pdf2docx (saves 230MB): opencv-python + PyMuPDF
+    version="2.1.2"  # Test Watchtower auto-deploy
 )
 
 # Add validation error handler
