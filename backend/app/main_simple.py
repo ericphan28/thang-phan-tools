@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.0.2"  # Test fast deploy
+    version="2.0.3"  # Test deploy speed measurement
 )
 
 # Add validation error handler
