@@ -84,7 +84,6 @@ services:
       - ENVIRONMENT=production
       - DEBUG=false
     volumes:
-      - ./backend:/app
       - upload_data:/app/uploads
       - model_data:/app/models
       - temp_data:/app/temp

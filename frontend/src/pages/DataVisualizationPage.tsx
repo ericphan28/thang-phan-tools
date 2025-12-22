@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { BarChart3, Loader2, Sparkles, Download, Image } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
-import TechnologyBadge from '@/components/TechnologyBadge';
+import { TechnologyBadge } from '@/components/TechnologyBadge';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -102,8 +102,8 @@ Phân tích:
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <TechnologyBadge technology="matplotlib" size="lg" />
-          <TechnologyBadge technology="gemini" size="lg" />
+          <TechnologyBadge tech="matplotlib" size="lg" />
+          <TechnologyBadge tech="gemini" size="lg" />
         </div>
       </div>
 
@@ -193,13 +193,13 @@ Phân tích:
               <p className="text-sm font-medium">Thông tin công nghệ:</p>
               {techInfo.model && (
                 <div className="flex items-center gap-2">
-                  <TechnologyBadge technology={techInfo.model} />
+                  <TechnologyBadge tech={techInfo.model as any} />
                   <span className="text-sm text-muted-foreground">AI Model</span>
                 </div>
               )}
               {techInfo.feature && (
                 <div className="flex items-center gap-2">
-                  <TechnologyBadge technology={techInfo.feature} />
+                  <TechnologyBadge tech={techInfo.feature as any} />
                   <span className="text-sm text-muted-foreground">Feature</span>
                 </div>
               )}

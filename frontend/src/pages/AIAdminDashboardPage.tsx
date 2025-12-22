@@ -202,9 +202,9 @@ export default function AIAdminDashboardPage() {
                           style={{ width: `${Math.min(balance.usage_percentage || 0, 100)}%` }}
                         />
                       </div>
-                      {balance.remaining_budget !== undefined && (
+                      {balance.remaining_usd !== undefined && (
                         <p className="text-xs text-gray-600 mt-1">
-                          Còn lại: {formatCurrency(balance.remaining_budget)}
+                          Còn lại: {formatCurrency(balance.remaining_usd)}
                         </p>
                       )}
                     </div>

@@ -1,11 +1,11 @@
 // frontend/src/components/TechnologyBadge.tsx
 import React from 'react';
 
-export type TechnologyType = 'adobe' | 'gotenberg' | 'pdf2docx' | 'pdfplumber' | 'gemini' | 'claude' | 'pypdf' | 'tesseract' | 'pillow' | 'reportlab' | 'pypdfium2';
+export type TechnologyType = 'adobe' | 'gotenberg' | 'pdf2docx' | 'pdfplumber' | 'gemini' | 'claude' | 'pypdf' | 'tesseract' | 'pillow' | 'reportlab' | 'pypdfium2' | 'matplotlib';
 
 interface TechnologyBadgeProps {
   tech: TechnologyType;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'lg';
   showQuality?: boolean;
 }
 
@@ -97,6 +97,14 @@ const TECH_CONFIG = {
     bgColor: '#F1F5F9',
     quality: 'Standard',
     description: 'PDF rendering'
+  },
+  matplotlib: {
+    name: 'Matplotlib',
+    icon: '📊',
+    color: '#FF6B6B',
+    bgColor: '#FFE8E8',
+    quality: 'Premium',
+    description: 'Data visualization'
   }
 };
 
@@ -120,7 +128,8 @@ export const TechnologyBadge: React.FC<TechnologyBadgeProps> = ({
   const sizeStyles = {
     small: 'text-xs px-2 py-0.5',
     medium: 'text-sm px-3 py-1',
-    large: 'text-base px-4 py-2'
+    large: 'text-base px-4 py-2',
+    lg: 'text-base px-4 py-2'
   };
 
   return (

@@ -3,6 +3,7 @@ Security utilities for authentication and authorization
 """
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+from uuid import uuid4
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import HTTPException, status
@@ -82,6 +83,7 @@ def create_access_token(
     to_encode.update({
         "exp": expire,
         "iat": datetime.utcnow(),  # Issued at
+        "jti": str(uuid4()),  # Unique token id (ensures refresh always yields a new token)
         "type": "access"
     })
     
@@ -142,6 +144,7 @@ def create_refresh_token(data: Dict[str, Any]) -> str:
     to_encode.update({
         "exp": expire,
         "iat": datetime.utcnow(),
+        "jti": str(uuid4()),
         "type": "refresh"
     })
     

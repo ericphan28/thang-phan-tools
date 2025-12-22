@@ -40,6 +40,6 @@ def get_db() -> Generator[Session, None, None]:
 def init_db():
     """Initialize database tables"""
     # Import all models to register them with SQLAlchemy
-    # Use auth_models only (SQLite compatible, no Face model)
     from app.models import auth_models  # noqa: F401
+    from app.models import models  # noqa: F401 - AI provider keys, usage logs
     Base.metadata.create_all(bind=engine)

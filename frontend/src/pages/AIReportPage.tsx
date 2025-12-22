@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { FileText, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
-import TechnologyBadge from '@/components/TechnologyBadge';
+import { TechnologyBadge } from '@/components/TechnologyBadge';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 

@@ -3780,12 +3780,15 @@ Trả về văn bản:"""
             response = model.generate_content([uploaded_file, prompt])
             text = response.text.strip()
             
-            # Calculate usage
-            usage = response.usage_metadata
-            total_tokens = usage.prompt_token_count + usage.candidates_token_count
-            
-            # Calculate cost (Gemini 2.0 Flash pricing)
-            cost = (usage.prompt_token_count / 1_000_000 * 0.075) + (usage.candidates_token_count / 1_000_000 * 0.30)
+            # Calculate usage (safely handle missing usage_metadata)
+            total_tokens = 0
+            cost = 0.0
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = response.usage_metadata
+                prompt_tokens = getattr(usage, 'prompt_token_count', 0)
+                candidates_tokens = getattr(usage, 'candidates_token_count', 0)
+                total_tokens = prompt_tokens + candidates_tokens
+                cost = (prompt_tokens / 1_000_000 * 0.075) + (candidates_tokens / 1_000_000 * 0.30)
             
             # Clean up uploaded file
             try:
@@ -3848,14 +3851,17 @@ Trả về văn bản:"""
             response = model.generate_content([prompt, image])
             text = response.text.strip()
             
-            # Calculate usage
-            usage = response.usage_metadata
-            input_tokens = usage.prompt_token_count
-            output_tokens = usage.candidates_token_count
-            total_tokens = input_tokens + output_tokens
-            
-            # Calculate cost (Gemini 2.5 Flash pricing)
-            cost = (input_tokens / 1_000_000 * 0.30) + (output_tokens / 1_000_000 * 2.50)
+            # Calculate usage (safely handle missing usage_metadata)
+            input_tokens = 0
+            output_tokens = 0
+            total_tokens = 0
+            cost = 0.0
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = response.usage_metadata
+                input_tokens = getattr(usage, 'prompt_token_count', 0)
+                output_tokens = getattr(usage, 'candidates_token_count', 0)
+                total_tokens = input_tokens + output_tokens
+                cost = (input_tokens / 1_000_000 * 0.30) + (output_tokens / 1_000_000 * 2.50)
             
             return {
                 "text": text,
@@ -4117,10 +4123,15 @@ Markdown:"""
             response = model.generate_content([uploaded_file, prompt])
             markdown = response.text.strip()
             
-            # Calculate usage
-            usage = response.usage_metadata
-            total_tokens = usage.prompt_token_count + usage.candidates_token_count
-            cost = (usage.prompt_token_count / 1_000_000 * 0.075) + (usage.candidates_token_count / 1_000_000 * 0.30)
+            # Calculate usage (safely handle missing usage_metadata)
+            total_tokens = 0
+            cost = 0.0
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                usage = response.usage_metadata
+                prompt_tokens = getattr(usage, 'prompt_token_count', 0)
+                candidates_tokens = getattr(usage, 'candidates_token_count', 0)
+                total_tokens = prompt_tokens + candidates_tokens
+                cost = (prompt_tokens / 1_000_000 * 0.075) + (candidates_tokens / 1_000_000 * 0.30)
             
             # Cleanup
             try:
@@ -4471,9 +4482,15 @@ Markdown:"""
             
             structured_data = json.loads(json_text)
             
-            # Get token usage
-            input_tokens = response.usage_metadata.prompt_token_count
-            output_tokens = response.usage_metadata.candidates_token_count
+            # Get token usage (safely handle missing usage_metadata)
+            input_tokens = 0
+            output_tokens = 0
+            total_tokens = 0
+            
+            if hasattr(response, 'usage_metadata') and response.usage_metadata:
+                input_tokens = getattr(response.usage_metadata, 'prompt_token_count', 0)
+                output_tokens = getattr(response.usage_metadata, 'candidates_token_count', 0)
+                total_tokens = getattr(response.usage_metadata, 'total_token_count', 0)
             
             # Add metadata
             structured_data["_metadata"] = {
@@ -4481,7 +4498,7 @@ Markdown:"""
                 "model": model,
                 "input_tokens": input_tokens,
                 "output_tokens": output_tokens,
-                "total_tokens": response.usage_metadata.total_token_count,
+                "total_tokens": total_tokens,
             }
             
             # Log usage to AI Admin system

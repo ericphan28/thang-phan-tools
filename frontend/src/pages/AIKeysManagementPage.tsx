@@ -238,7 +238,7 @@ function AddEditKeyModal({
   const [formData, setFormData] = useState({
     provider: existingKey?.provider || 'gemini',
     key_name: existingKey?.key_name || '',
-    api_key: existingKey?.api_key || '',
+    api_key: existingKey?.api_key_masked || '',
     is_primary: existingKey?.is_primary || false,
     is_active: existingKey?.is_active ?? true,
     monthly_limit: existingKey?.monthly_limit || '',
