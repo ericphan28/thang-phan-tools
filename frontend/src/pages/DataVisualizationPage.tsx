@@ -294,7 +294,7 @@ Phân tích:
                   setTextInput('');
                   setDocumentTitle('Báo cáo Trực quan hóa Dữ liệu');
                   setSelectedSample('');
-                  toast.info('Đã xóa dữ liệu, bạn có thể nhập mới');
+                  toast('Đã xóa dữ liệu, bạn có thể nhập mới');
                 }}
                 disabled={loading}
                 className="p-3 border border-dashed border-border rounded-lg text-left transition-all hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900"
