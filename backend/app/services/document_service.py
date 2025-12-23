@@ -4674,9 +4674,9 @@ INSTRUCTIONS:
    
 3. Mỗi content item có:
    - type: "paragraph", "list", "info_box", "highlight_box"
-   - text: Nội dung văn bản
-   - items: Array (nếu là list)
-   - highlights: Array các từ/cụm từ cần highlight
+   - text: Nội dung văn bản (cho paragraph)
+   - items: ARRAY of strings (cho list) - VD: ["Item 1", "Item 2"]
+   - highlights: ARRAY of strings (cho paragraph) - VD: ["Samsung", "Apple"]
    
 4. **VISUALIZATION (CHỈ khi text có số liệu):**
    - Nếu text chứa dữ liệu số (doanh thu, thống kê, so sánh...)
@@ -4691,8 +4691,15 @@ INSTRUCTIONS:
    - Thông tin quan trọng → info_box
    - Kết luận/tóm tắt → highlight_box
    - Danh sách → list
-   - Tên người, địa điểm → highlights
+   - Tên người, địa điểm, thuật ngữ quan trọng → highlights (PHẢI LÀ ARRAY)
    - **Số liệu → visualizations**
+
+⚠️ QUAN TRỌNG:
+- "highlights" PHẢI là array of strings: ["Samsung", "Apple"]
+- "items" (cho list) PHẢI là array of strings: ["Item 1", "Item 2", "Item 3"]
+- KHÔNG được là string: "highlights" hoặc "items" hoặc "typetexthighlights"
+- Nếu không có highlights → dùng array rỗng: []
+- Nếu không có items → dùng array rỗng: []
 
 OUTPUT JSON FORMAT:
 {{
@@ -4706,7 +4713,11 @@ OUTPUT JSON FORMAT:
         {{
           "type": "paragraph",
           "text": "Đoạn văn bản...",
-          "highlights": ["từ quan trọng"]
+          "highlights": ["Samsung", "Apple", "Oppo"]  // ARRAY, not string!
+        }},
+        {{
+          "type": "list",
+          "items": ["Hà Nội: 500 triệu", "TP.HCM: 650 triệu"]  // ARRAY, not string!
         }}
       ]
     }}
@@ -5133,6 +5144,11 @@ li {{
                     text = content_item.get("text", "")
                     highlights = content_item.get("highlights", [])
                     
+                    # FIX: Validate highlights is a list (AI sometimes returns string by mistake)
+                    if not isinstance(highlights, list):
+                        logger.warning(f"Invalid highlights type: {type(highlights)}. Expected list, got: {highlights}")
+                        highlights = []  # Reset to empty list
+                    
                     para = doc.add_paragraph()
                     para.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
                     para.paragraph_format.first_line_indent = Cm(1.0)
@@ -5171,6 +5187,12 @@ li {{
                 
                 elif item_type == "list":
                     items = content_item.get("items", [])
+                    
+                    # FIX: Validate items is a list (AI sometimes returns string by mistake)
+                    if not isinstance(items, list):
+                        logger.warning(f"Invalid list items type: {type(items)}. Expected list, got: {items}")
+                        items = []  # Reset to empty list
+                    
                     for list_item in items:
                         para = doc.add_paragraph(list_item, style='List Bullet')
                         if para.runs:

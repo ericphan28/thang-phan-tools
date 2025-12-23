@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "backend/**"
+      - "frontend/**"
       - "docker-compose*.yml"
       - ".github/workflows/backend-image-ghcr.yml"
   workflow_dispatch:

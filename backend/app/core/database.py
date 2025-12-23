@@ -42,4 +42,5 @@ def init_db():
     # Import all models to register them with SQLAlchemy
     from app.models import auth_models  # noqa: F401
     from app.models import models  # noqa: F401 - AI provider keys, usage logs
+    from app.models import deployment  # noqa: F401 - Deployment tracking
     Base.metadata.create_all(bind=engine)

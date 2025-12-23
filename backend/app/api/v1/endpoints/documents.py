@@ -2738,6 +2738,113 @@ async def text_to_word_smart(
         raise HTTPException(500, f"Failed to generate Word document: {str(e)}")
 
 
+@router.post("/generate-visualization")
+async def generate_visualization(
+    text_input: str = Form(..., description="Text content with data to visualize"),
+    document_title: Optional[str] = Form(None, description="Custom document title (optional)"),
+    language: str = Form("vi", description="Language: vi or en"),
+    provider: str = Form("gemini", description="AI provider: 'gemini' or 'claude'"),
+    model: Optional[str] = Form(None, description="Specific model name (optional)"),
+):
+    """
+    📊 AI Data Visualization - Create Word documents with charts from text data
+    
+    **How it works:**
+    1. AI analyzes your text and detects numerical data
+    2. Automatically selects appropriate chart types (bar, line, pie, scatter)
+    3. Generates beautiful matplotlib charts
+    4. Embeds charts into formatted Word document with descriptions
+    
+    **Features:**
+    - 🎨 Auto-detect data patterns and choose chart types
+    - 📊 Multiple chart types: bar, line, pie, scatter
+    - 🖼️ High-quality PNG charts (200 DPI)
+    - 📄 Professional Word document formatting
+    - 🌍 Vietnamese & English support
+    - 🤖 Powered by Gemini AI + matplotlib
+    
+    **Example input:**
+    ```
+    Báo cáo doanh thu Q4/2024
+    
+    Doanh thu các tháng:
+    - Tháng 10: 500 triệu
+    - Tháng 11: 650 triệu
+    - Tháng 12: 720 triệu
+    
+    Phân tích sản phẩm:
+    - Sản phẩm A: 45%
+    - Sản phẩm B: 30%
+    - Sản phẩm C: 25%
+    ```
+    
+    **AI will create:**
+    - Bar chart: Monthly revenue
+    - Pie chart: Product distribution
+    - Formatted sections with analysis
+    
+    **Cost:** ~$0.00001-0.0001 per request (very cheap)
+    """
+    try:
+        # Log incoming request
+        logger.info(f"📊 Visualization request: provider={provider}, model={model}, language={language}, text_length={len(text_input) if text_input else 0}")
+        
+        # Validate inputs
+        if not text_input or len(text_input.strip()) < 10:
+            raise HTTPException(400, "Text must be at least 10 characters")
+        
+        if provider not in ["gemini", "claude"]:
+            raise HTTPException(400, "Provider must be 'gemini' or 'claude'")
+        
+        if language not in ["vi", "en", "zh", "ja", "ko", "fr", "de", "es"]:
+            raise HTTPException(400, "Unsupported language code")
+        
+        # Generate DOCX with charts (using text_to_word_mhtml which supports visualization)
+        docx_bytes, ai_usage = await doc_service.text_to_word_mhtml(
+            text=text_input,
+            provider=provider,
+            model=model,
+            language=language
+        )
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        title_slug = document_title.replace(" ", "_") if document_title else "visualization"
+        filename = f"{title_slug}_{timestamp}.docx"
+        
+        # Return as downloadable file
+        response = Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f'attachment; filename="{encode_filename(filename)}"'
+            }
+        )
+        
+        # Add metadata headers
+        response.headers["X-Technology-Engine"] = provider
+        response.headers["X-Technology-Name"] = f"{provider.title()} AI"
+        response.headers["X-Technology-Model"] = ai_usage.get("model", "unknown")
+        response.headers["X-Technology-Feature"] = "Data Visualization + matplotlib"
+        response.headers["X-Technology-Quality"] = "10/10"
+        response.headers["X-Technology-Type"] = "ai-visualization"
+        response.headers["X-Input-Tokens"] = str(ai_usage.get("input_tokens", 0))
+        response.headers["X-Output-Tokens"] = str(ai_usage.get("output_tokens", 0))
+        response.headers["X-Processing-Time-Ms"] = str(int(ai_usage.get("processing_time_ms", 0)))
+        
+        logger.info(f"✅ Visualization created successfully: {filename}")
+        return response
+        
+    except HTTPException as he:
+        logger.error(f"❌ HTTPException in generate-visualization: {he.status_code} - {he.detail}")
+        raise
+    except Exception as e:
+        logger.error(f"❌ Visualization generation error: {type(e).__name__}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(500, f"Failed to generate visualization: {str(e)}")
+
+
 @router.get("/ai-providers")
 async def get_ai_providers():
     """

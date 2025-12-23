@@ -18,6 +18,7 @@ import AIAdminDashboardPage from './pages/AIAdminDashboardPage';
 import AIKeysManagementPage from './pages/AIKeysManagementPage';
 import TextToWordPage from './pages/TextToWordPage';
 import DataVisualizationPage from './pages/DataVisualizationPage';
+import DeploymentMonitor from './pages/DeploymentMonitor';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -97,6 +98,7 @@ function App() {
               <Route path="data-visualization" element={<DataVisualizationPage />} />
               <Route path="ai-admin" element={<AIAdminDashboardPage />} />
               <Route path="ai-keys" element={<AIKeysManagementPage />} />
+              <Route path="deployment" element={<DeploymentMonitor />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

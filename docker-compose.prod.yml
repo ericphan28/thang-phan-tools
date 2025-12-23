@@ -131,6 +131,26 @@ services:
     networks:
       - utility-network
 
+  # Watchtower (Auto-update containers)
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: utility-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_LABEL_ENABLE=false
+      - WATCHTOWER_DEBUG=true
+      - TZ=Asia/Ho_Chi_Minh
+    command: utility-backend-prod utility-frontend-prod
+    networks:
+      - utility-network
+
 networks:
   utility-network:
     driver: bridge

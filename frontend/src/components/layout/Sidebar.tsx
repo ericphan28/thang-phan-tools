@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X, FileText, FileEdit, Search, Key, BarChart3, Sparkles, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X, FileText, FileEdit, Search, Key, BarChart3, Sparkles, TrendingUp, Rocket } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 
@@ -16,6 +16,7 @@ const menuItems = [
   { icon: TrendingUp, label: 'AI Visualization', path: '/data-visualization', badge: '📊 NEW' },
   { icon: BarChart3, label: 'AI Admin', path: '/ai-admin' },
   { icon: Key, label: 'AI Keys', path: '/ai-keys' },
+  { icon: Rocket, label: 'Deployment', path: '/deployment', badge: '🚀 NEW' },
 ];
 
 interface SidebarProps {
