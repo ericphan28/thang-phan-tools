@@ -4452,6 +4452,7 @@ Markdown:"""
             prompt = self._build_format_prompt(text, language)
             start_time = time.time()
             
+            # Configure with longer timeout for complex text processing
             response = await asyncio.to_thread(
                 gemini_model.generate_content,
                 prompt,
@@ -4460,6 +4461,9 @@ Markdown:"""
                     "top_p": 0.95,
                     "top_k": 40,
                     "max_output_tokens": 8192,
+                },
+                request_options={
+                    "timeout": 180  # 3 minutes timeout for Gemini API
                 }
             )
             
