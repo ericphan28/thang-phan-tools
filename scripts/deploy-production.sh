@@ -12,18 +12,16 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_DIR="/opt/utility-server"
 COMPOSE_FILE="docker-compose.prod.yml"
-# Get services to deploy from env var, default to all
-DEPLOY_SERVICES=${DEPLOY_SERVICES:-"backend frontend"}
 
 cd $PROJECT_DIR
 
-echo -e "${YELLOW}📦 Pulling latest images for: $DEPLOY_SERVICES${NC}"
+echo -e "${YELLOW}📦 Pulling latest images...${NC}"
 MAX_RETRIES=3
 RETRY_COUNT=0
 
 while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
-    if docker-compose -f $COMPOSE_FILE pull --no-parallel $DEPLOY_SERVICES; then
+    if docker-compose -f $COMPOSE_FILE pull --no-parallel backend frontend; then
         echo -e "${GREEN}✅ Pull successful!${NC}"
         break
     else
@@ -38,8 +36,8 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     fi
 done
 
-echo -e "${YELLOW}🔄 Restarting services: $DEPLOY_SERVICES${NC}"
-docker-compose -f $COMPOSE_FILE up -d --force-recreate $DEPLOY_SERVICES
+echo -e "${YELLOW}🔄 Restarting services...${NC}"
+docker-compose -f $COMPOSE_FILE up -d --force-recreate backend frontend
 
 echo -e "${YELLOW}⏳ Waiting 15s for services to start...${NC}"
 sleep 15

@@ -24,28 +24,8 @@ env:
   FRONTEND_IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}-frontend
 
 jobs:
-  check-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'docker-compose*.yml'
-            frontend:
-              - 'frontend/**'
-              - 'docker-compose*.yml'
-
   build-and-push-backend:
     runs-on: ubuntu-latest
-    needs: check-changes
-    if: needs.check-changes.outputs.backend == 'true'
 
     steps:
       - name: Checkout
@@ -87,8 +67,7 @@ jobs:
 
   build-and-push-frontend:
     runs-on: ubuntu-latest
-    needs: [check-changes, build-and-push-backend]
-    if: always() && needs.check-changes.outputs.frontend == 'true' && (needs.build-and-push-backend.result == 'success' || needs.build-and-push-backend.result == 'skipped')
+    needs: build-and-push-backend
 
     steps:
       - name: Checkout
@@ -132,24 +111,11 @@ jobs:
 
   deploy-to-production:
     runs-on: ubuntu-latest
-    needs: [check-changes, build-and-push-backend, build-and-push-frontend]
-    if: always() && github.ref == 'refs/heads/main' && (needs.build-and-push-backend.result == 'success' || needs.build-and-push-frontend.result == 'success')
+    needs: [build-and-push-backend, build-and-push-frontend]
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 15
     
     steps:
-      - name: Determine services to deploy
-        id: services
-        run: |
-          SERVICES=""
-          if [ "${{ needs.check-changes.outputs.backend }}" == "true" ] && [ "${{ needs.build-and-push-backend.result }}" == "success" ]; then
-            SERVICES="$SERVICES backend"
-          fi
-          if [ "${{ needs.check-changes.outputs.frontend }}" == "true" ] && [ "${{ needs.build-and-push-frontend.result }}" == "success" ]; then
-            SERVICES="$SERVICES frontend"
-          fi
-          echo "services=$SERVICES" >> $GITHUB_OUTPUT
-          echo "Deploying: $SERVICES"
-      
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -159,7 +125,6 @@ jobs:
           command_timeout: 15m
           script: |
             cd /opt/utility-server
-            export DEPLOY_SERVICES="${{ steps.services.outputs.services }}"
             ./deploy.sh
       
       - name: Deployment Summary
