@@ -216,7 +216,7 @@ export default function OCRToWordPage() {
       }, 120000); // 120 giây timeout (cho file nhiều trang)
       
       // Track timeouts to clear them when API responds
-      const stepTimeouts: NodeJS.Timeout[] = [];
+      const stepTimeouts: number[] = [];
       
       const endpoint = isPublicDemo ? '/documents/ocr-to-word-demo' : '/documents/ocr-to-word';
       const response = await api.post(endpoint, formData, {
