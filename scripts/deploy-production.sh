@@ -39,8 +39,8 @@ done
 echo -e "${YELLOW}🔄 Restarting services...${NC}"
 docker-compose -f $COMPOSE_FILE up -d --force-recreate backend frontend
 
-echo -e "${YELLOW}⏳ Waiting 15s for services to start...${NC}"
-sleep 15
+echo -e "${YELLOW}⏳ Waiting 30s for services to start...${NC}"
+sleep 30
 
 # Health checks
 echo -e "${YELLOW}🏥 Running health checks...${NC}"
