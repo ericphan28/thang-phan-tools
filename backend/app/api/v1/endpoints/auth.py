@@ -27,6 +27,7 @@ from app.schemas.auth import (
     PasswordChange,
     PasswordChangeResponse
 )
+from app.schemas.user import ProfileUpdate
 from app.api.dependencies import (
     get_current_user,
     get_current_active_user
@@ -249,6 +250,62 @@ async def get_current_user_info(
     
     Returns current user profile
     """
+    return UserResponse(
+        id=current_user.id,
+        username=current_user.username,
+        email=current_user.email,
+        full_name=current_user.full_name,
+        is_active=current_user.is_active,
+        is_superuser=current_user.is_superuser,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+        roles=[role.name for role in current_user.roles]
+    )
+
+
+@router.put("/me/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: ProfileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update current user's profile
+    
+    Requires: Valid JWT token in Authorization header
+    
+    - **email**: New email address (optional)
+    - **full_name**: New full name (optional)
+    - **phone**: Phone number (optional)
+    - **address**: Address (optional)
+    
+    Returns updated user profile
+    """
+    # Check if email is already taken by another user
+    if profile_data.email and profile_data.email != current_user.email:
+        existing_user = db.query(User).filter(User.email == profile_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        current_user.email = profile_data.email
+    
+    # Update full name
+    if profile_data.full_name is not None:
+        current_user.full_name = profile_data.full_name
+    
+    # Update phone
+    if profile_data.phone is not None:
+        current_user.phone = profile_data.phone
+    
+    # Update address
+    if profile_data.address is not None:
+        current_user.address = profile_data.address
+    
+    db.commit()
+    db.refresh(current_user)
+    
     return UserResponse(
         id=current_user.id,
         username=current_user.username,

@@ -6,6 +6,7 @@ import { getDashboard, getBalanceStatus, getUsageStats, getRecentUsage, type Das
 import { AlertCircle, TrendingUp, DollarSign, Activity, RefreshCw, Database } from 'lucide-react';
 import UsageStatsCard from '../components/ai-admin/UsageStatsCard';
 import RecentUsageLogsCard from '../components/ai-admin/RecentUsageLogsCard';
+import ProviderLiveStatusCard from '../components/ai-admin/ProviderLiveStatusCard';
 
 export default function AIAdminDashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
@@ -255,6 +256,9 @@ export default function AIAdminDashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Live Provider Status - Real-time quota tracking */}
+      <ProviderLiveStatusCard />
 
       {/* Recent Usage */}
       {dashboard?.recent_usage && dashboard.recent_usage.length > 0 && (

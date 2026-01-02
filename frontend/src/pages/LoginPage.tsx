@@ -21,8 +21,24 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login({ username, password });
-      navigate('/');
+      const response = await login({ username, password });
+      
+      // Redirect based on user role after successful login
+      // Get fresh user data from localStorage (login() saves it)
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const userData = JSON.parse(savedUser);
+        
+        // Admin → /admin, Regular user → /user
+        if (userData.is_superuser) {
+          navigate('/admin');
+        } else {
+          navigate('/user');
+        }
+      } else {
+        // Fallback to root if no user data
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {

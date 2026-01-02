@@ -7,11 +7,16 @@ if sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 from fastapi import FastAPI, Request, status
+
+# ============ REQUEST SIZE & TIMEOUT OPTIMIZATION ============
+# Increase default limits for file uploads (default is 1MB)
+# This helps avoid 408 timeouts and request body size errors
+MAX_REQUEST_BODY_SIZE = 100 * 1024 * 1024  # 100MB
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr, ocr_compare, ai_admin, deployment
+from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr, ocr_compare, ai_admin, deployment, subscription, vb_hanh_chinh
 from app.api.v1.endpoints import settings as settings_router
 from app.routers import mau_2c
 import logging
@@ -27,7 +32,12 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.1.3"  # Test force deploy timing
+    version="2.1.4",  # Fixed quota + request size optimization
+    # Swagger UI config for large file uploads
+    swagger_ui_parameters={
+        "requestTimeout": 120000,  # 2 minutes timeout for Swagger UI
+        "displayRequestDuration": True,
+    },
 )
 
 # Add validation error handler
@@ -88,7 +98,9 @@ app.include_router(documents.router, prefix=f"{settings.API_PREFIX}/documents", 
 app.include_router(images.router, prefix=f"{settings.API_PREFIX}/images", tags=["🎨 Image Tools"])
 app.include_router(ocr.router, prefix=f"{settings.API_PREFIX}/ocr", tags=["📝 OCR - Text Recognition"])
 app.include_router(ocr_compare.router, prefix=f"{settings.API_PREFIX}", tags=["🔍 OCR Comparison"])
+app.include_router(vb_hanh_chinh.router, prefix=f"{settings.API_PREFIX}/vb-hanh-chinh", tags=["📋 Văn Bản Hành Chính"])
 app.include_router(ai_admin.router, prefix=f"{settings.API_PREFIX}/ai-admin", tags=["🔑 AI Admin"])
+app.include_router(subscription.router, prefix=f"{settings.API_PREFIX}/subscription", tags=["💳 User Subscription"])
 app.include_router(settings_router.router, prefix=f"{settings.API_PREFIX}/settings", tags=["⚙️ Settings & Configuration"])
 app.include_router(deployment.router, prefix=f"{settings.API_PREFIX}", tags=["🚀 Deployment Monitor"])
 app.include_router(mau_2c.router, tags=["📋 Mẫu 2C - Sơ Yếu Lý Lịch"])

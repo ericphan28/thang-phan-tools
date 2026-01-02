@@ -3,15 +3,26 @@ Modern OCR API Endpoints (2025)
 Extract text from images using deep learning
 """
 
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, Depends
 from typing import List
+from sqlalchemy.orm import Session
 
 from app.services.ocr_service import OCRService
+from app.services.gemini_service import GeminiService
+from app.core.database import get_db
+from app.api.dependencies import get_current_user
+from app.models.auth_models import User
 
 router = APIRouter(tags=["OCR - Text Recognition"])
 
-# Initialize service
-ocr_service = OCRService()
+
+def get_ocr_service(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> OCRService:
+    """Dependency to get OCRService with GeminiService"""
+    gemini_service = GeminiService(db=db, user_id=current_user.id)
+    return OCRService(gemini_service=gemini_service)
 
 
 @router.post("/extract")
@@ -21,6 +32,7 @@ async def extract_text(
     detail: int = Form(1, ge=0, le=1, description="0=text only, 1=text+confidence+bounding boxes"),
     paragraph: bool = Form(False, description="Group text into paragraphs"),
     gpu: bool = Form(False, description="Use GPU acceleration (requires CUDA)"),
+    ocr_service: OCRService = Depends(get_ocr_service),
 ):
     """
     Extract text from image using AI-powered OCR
@@ -81,6 +93,7 @@ async def extract_vietnamese(
     file: UploadFile = File(..., description="Image with Vietnamese text"),
     include_english: bool = Form(True, description="Also detect English text"),
     gpu: bool = Form(False, description="Use GPU acceleration"),
+    ocr_service: OCRService = Depends(get_ocr_service),
 ):
     """
     Extract Vietnamese text (optimized for Vietnamese)
@@ -117,6 +130,7 @@ async def extract_vietnamese(
 async def auto_detect_and_extract(
     file: UploadFile = File(..., description="Image with text (any language)"),
     gpu: bool = Form(False, description="Use GPU acceleration"),
+    ocr_service: OCRService = Depends(get_ocr_service),
 ):
     """
     Auto-detect language and extract text

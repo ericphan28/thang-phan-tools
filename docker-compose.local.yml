@@ -1,0 +1,88 @@
+version: '3.8'
+
+# Local Development Docker Compose
+# Dùng cho localhost development với PostgreSQL giống production
+# Usage: docker-compose -f docker-compose.local.yml up -d
+
+services:
+  # PostgreSQL Database (Local Development)
+  postgres:
+    image: postgres:15-alpine
+    container_name: utility-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: utility_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_DB: utility_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U utility_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (Optional - for local development)
+  redis:
+    image: redis:7-alpine
+    container_name: utility-redis-local
+    restart: unless-stopped
+    command: redis-server --requirepass dev_redis_123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_local:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Gotenberg (PDF Conversion Service)
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: utility-gotenberg-local
+    restart: unless-stopped
+    command:
+      - "gotenberg"
+      - "--api-timeout=300s"
+      - "--api-port=3000"
+      - "--log-level=info"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # pgAdmin (Optional - Database Management UI)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: utility-pgadmin-local
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@localhost.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_local:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_local:
+    driver: local
+  redis_local:
+    driver: local
+  pgadmin_local:
+    driver: local
+
+networks:
+  default:
+    name: utility-local-network

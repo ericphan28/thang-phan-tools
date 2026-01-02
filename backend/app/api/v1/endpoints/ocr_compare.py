@@ -1,29 +1,43 @@
 """
 OCR Comparison API - Compare Adobe, Tesseract, and Gemini OCR engines
 """
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from pathlib import Path
 import time
 from typing import Dict, Any
 from loguru import logger
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.services.ocr_service import OCRService
+from app.services.gemini_service import GeminiService
 from app.services.document_service import DocumentService
 from app.services.ai_usage_service import get_api_key, get_primary_key, log_usage, check_budget_limit
-from app.core.database import SessionLocal
+from app.core.database import get_db
+from app.api.dependencies import get_current_user
+from app.models.auth_models import User
 
 router = APIRouter(prefix="/ocr-compare", tags=["🔍 OCR Comparison"])
 
-# Initialize services
-ocr_service = OCRService()
+
+def get_ocr_service(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+) -> OCRService:
+    """Dependency to get OCRService with GeminiService"""
+    gemini_service = GeminiService(db=db, user_id=current_user.id)
+    return OCRService(gemini_service=gemini_service)
+
+
+# Initialize DocumentService (doesn't need dependencies)
 document_service = DocumentService()
 
 
 @router.post("/compare-engines")
 async def compare_ocr_engines(
     file: UploadFile = File(...),
-    language: str = "vi"
+    language: str = "vi",
+    ocr_service: OCRService = Depends(get_ocr_service),
 ):
     """
     Compare OCR results from Adobe, Tesseract, and Gemini
@@ -464,7 +478,11 @@ Trả về văn bản:"""
 
 
 @router.post("/smart-ocr")
-async def smart_ocr(file: UploadFile = File(...), language: str = "vi"):
+async def smart_ocr(
+    file: UploadFile = File(...),
+    language: str = "vi",
+    ocr_service: OCRService = Depends(get_ocr_service),
+):
     """Smart OCR with Gemini - Coming soon"""
     try:
         if not document_service.use_gemini:
@@ -482,7 +500,10 @@ async def smart_ocr(file: UploadFile = File(...), language: str = "vi"):
 
 
 @router.post("/classify-document")
-async def classify_document(file: UploadFile = File(...)):
+async def classify_document(
+    file: UploadFile = File(...),
+    ocr_service: OCRService = Depends(get_ocr_service),
+):
     """Document classification with Gemini - Coming soon"""
     try:
         if not document_service.use_gemini:
@@ -500,7 +521,11 @@ async def classify_document(file: UploadFile = File(...)):
 
 
 @router.post("/extract-data")
-async def extract_structured_data(file: UploadFile = File(...), document_type: str = "AUTO"):
+async def extract_structured_data(
+    file: UploadFile = File(...),
+    document_type: str = "AUTO",
+    ocr_service: OCRService = Depends(get_ocr_service),
+):
     """Structured data extraction with Gemini - Coming soon"""
     try:
         if not document_service.use_gemini:

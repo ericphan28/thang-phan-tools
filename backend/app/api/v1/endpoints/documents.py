@@ -2,7 +2,7 @@
 Modern Document Conversion API Endpoints (2025)
 """
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Depends, Header
 from fastapi.responses import FileResponse, StreamingResponse, Response
 from typing import List, Optional
 from pathlib import Path
@@ -14,8 +14,13 @@ import asyncio
 import aiofiles
 import logging
 import time
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 
 from app.services.document_service import DocumentService
+from app.services.quota_service import QuotaService
+from app.api.dependencies import get_current_user, get_current_user_optional
+from app.models.auth_models import User
 from pathlib import Path
 
 router = APIRouter(tags=["Document Conversion"])
@@ -26,6 +31,44 @@ doc_service = DocumentService(upload_dir=str(upload_dir))
 
 # Setup logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # CRITICAL: Enable INFO logs
+
+# Add console handler if not exists
+if not logger.handlers:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(levelname)s:     %(message)s')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+
+@router.get("/test-auth")
+async def test_auth_optional(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Test endpoint to verify optional auth works"""
+    # Manually get user from header
+    user = None
+    if authorization:
+        try:
+            from app.api.dependencies import get_current_user_optional
+            # Simpler: just decode token manually
+            from app.core.security import decode_access_token
+            if authorization.startswith("Bearer "):
+                token = authorization.replace("Bearer ", "")
+                payload = decode_access_token(token)
+                user_id = payload.get("user_id")
+                if user_id:
+                    from app.models.auth_models import User
+                    user = db.query(User).filter(User.id == user_id).first()
+        except:
+            pass  # Ignore errors - demo mode
+    
+    if user:
+        return {"status": "authenticated", "user_id": user.id, "username": user.username}
+    else:
+        return {"status": "demo_mode", "message": "No authentication provided"}
 
 
 def encode_filename(filename: str) -> str:
@@ -107,12 +150,30 @@ async def convert_word_to_pdf(
     
     **Fallback**: Nếu Gotenberg không khả dụng, tự động dùng LibreOffice local (dev only)
     """
+    logger.info(f"📥 Received Word file: {file.filename} (content_type: {file.content_type})")
+    
     # Save uploaded file
     input_path = await doc_service.save_upload_file(file)
+    logger.info(f"💾 Saved to: {input_path} (size: {input_path.stat().st_size} bytes)")
     
     try:
         # Convert
         output_path = await doc_service.word_to_pdf(input_path)
+        
+        # Verify output is PDF
+        logger.info(f"✅ Conversion completed: {output_path} (size: {output_path.stat().st_size} bytes)")
+        
+        if not output_path.suffix.lower() == '.pdf':
+            logger.error(f"❌ Output file is not PDF: {output_path.suffix}")
+            raise HTTPException(500, f"Output file has wrong extension: {output_path.suffix}")
+        
+        # Read first bytes to verify PDF magic number
+        with open(output_path, 'rb') as f:
+            magic = f.read(4)
+            logger.info(f"🔍 File magic bytes: {magic}")
+            if not magic.startswith(b'%PDF'):
+                logger.error(f"❌ File is not a valid PDF (magic: {magic})")
+                raise HTTPException(500, "Generated file is not a valid PDF")
         
         # Return file with technology metadata in headers
         response = FileResponse(
@@ -123,14 +184,20 @@ async def convert_word_to_pdf(
         )
         
         # Add technology metadata to response headers (no emojis - HTTP headers only support Latin-1)
-        response.headers["X-Technology-Engine"] = "gotenberg"
-        response.headers["X-Technology-Name"] = "Gotenberg"
-        response.headers["X-Technology-Quality"] = "9/10"
+        response.headers["X-Technology-Engine"] = "libreoffice"
+        response.headers["X-Technology-Name"] = "LibreOffice"
+        response.headers["X-Technology-Quality"] = "8/10"
         response.headers["X-Technology-Type"] = "local"
         
+        logger.info(f"📤 Sending PDF response: {output_path.name}")
         return response
         
     except Exception as e:
+        # Log full traceback for debugging
+        import traceback
+        logger.error(f"❌ Word→PDF conversion error: {str(e)}")
+        logger.error(traceback.format_exc())
+        
         # Cleanup on error
         await doc_service.cleanup_file(input_path)
         raise e
@@ -200,6 +267,7 @@ async def convert_pdf_to_word(
     auto_detect_scanned: bool = Form(True, description="Auto-detect scanned PDFs and enable OCR"),
     use_gemini: bool = Form(False, description="Use Gemini API (best for Vietnamese + tables)"),
     gemini_model: Optional[str] = Form(None, description="Gemini model to use (e.g., gemini-2.5-flash)"),
+    db: Session = Depends(get_db)
 ):
     """
     Convert PDF to Word document
@@ -242,7 +310,25 @@ async def convert_pdf_to_word(
     4. Or manually set `enable_ocr=True` to force OCR
     5. Adobe performs OCR during conversion (one-step, no intermediate files)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # Save uploaded file
+    logger.info("")
+    logger.info("="*80)
+    logger.info("🌐 API ENDPOINT: /api/v1/documents/convert/pdf-to-word")
+    logger.info(f"   File: {file.filename}")
+    logger.info(f"   Content-Type: {file.content_type}")
+    logger.info(f"   Size: {file.size if hasattr(file, 'size') else 'unknown'}")
+    logger.info(f"   Parameters:")
+    logger.info(f"      use_gemini={use_gemini}")
+    logger.info(f"      enable_ocr={enable_ocr}")
+    logger.info(f"      auto_detect_scanned={auto_detect_scanned}")
+    logger.info(f"      ocr_language={ocr_language}")
+    logger.info(f"      gemini_model={gemini_model}")
+    logger.info("="*80)
+    logger.info("")
+    
     input_path = await doc_service.save_upload_file(file)
     
     try:
@@ -250,6 +336,8 @@ async def convert_pdf_to_word(
         used_adobe = False
         used_gemini = False
         used_ocr = False
+        
+        logger.info("📞 Calling doc_service.pdf_to_word()...")
         
         # Convert (priority: Gemini > Adobe > pdf2docx)
         output_path = await doc_service.pdf_to_word(
@@ -260,20 +348,33 @@ async def convert_pdf_to_word(
             ocr_language=ocr_language,
             auto_detect_scanned=auto_detect_scanned,
             use_gemini=use_gemini,
-            gemini_model=gemini_model
+            gemini_model=gemini_model,
+            db=db
         )
+        
+        logger.info("")
+        logger.info(f"📨 Returned from pdf_to_word(): {output_path}")
+        logger.info(f"   Output file exists: {output_path.exists()}")
+        logger.info(f"   Output size: {output_path.stat().st_size if output_path.exists() else 0} bytes")
+        logger.info("")
         
         # Check which technology was actually used
         if use_gemini and doc_service.gemini_model:
             used_gemini = True
             # Get actual model name used
             actual_model = gemini_model or doc_service.gemini_model_name
+            logger.info(f"✅ Technology used: GEMINI ({actual_model})")
         elif doc_service.use_adobe and doc_service.adobe_credentials:
             used_adobe = True
             # Check if OCR was enabled (either manually or auto-detected)
             from app.services.document_service import is_pdf_scanned
             if enable_ocr or (auto_detect_scanned and is_pdf_scanned(input_path)):
                 used_ocr = True
+            logger.info(f"✅ Technology used: ADOBE (OCR: {used_ocr})")
+        else:
+            logger.warning("⚠️  Technology used: UNKNOWN or pdf2docx")
+        
+        logger.info("")
         
         # Return file with technology metadata
         response = FileResponse(
@@ -320,11 +421,249 @@ async def convert_pdf_to_word(
             response.headers["X-Technology-Type"] = "local"
             response.headers["X-Technology-OCR"] = "false"
         
+        logger.info("="*80)
+        logger.info("✅ API RESPONSE: 200 OK")
+        logger.info(f"   Technology: {response.headers.get('X-Technology-Engine', 'unknown')}")
+        logger.info(f"   File: {output_path.name}")
+        logger.info(f"   Size: {output_path.stat().st_size} bytes")
+        logger.info("="*80)
+        logger.info("")
+        
         return response
         
     except Exception as e:
+        logger.error("")
+        logger.error("="*80)
+        logger.error("❌ API ERROR")
+        logger.error(f"   Exception: {type(e).__name__}")
+        logger.error(f"   Message: {str(e)}")
+        logger.error("="*80)
+        logger.error("")
+        
         await doc_service.cleanup_file(input_path)
         raise e
+
+
+@router.post("/convert/pdf-to-word-adobe-only")
+async def convert_pdf_to_word_adobe_only(
+    file: UploadFile = File(..., description="PDF file"),
+    enable_ocr: bool = Form(False, description="Enable OCR for scanned PDFs"),
+    ocr_language: str = Form("en-US", description="OCR language (en-US, fr-FR, de-DE, etc. - NO Vietnamese)")
+):
+    """
+    🔵 Adobe PDF Services ONLY - Pure Adobe API Test
+    
+    - **Direct Adobe API call** - No Gemini, no pdf2docx, no fallback
+    - **10/10 quality** - AI-powered layout preservation
+    - **50+ languages OCR** - BUT NO Vietnamese support
+    - **Purpose:** Debug and verify Adobe PDF Services is working
+    
+    ⚠️ NOTE: This endpoint will FAIL if Adobe is not configured properly
+    ⚠️ Vietnamese OCR NOT supported - use en-US, fr-FR, de-DE, etc.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Check if Adobe is available
+    if not doc_service.use_adobe or not doc_service.adobe_credentials:
+        raise HTTPException(
+            503,
+            "Adobe PDF Services not configured. Please set USE_ADOBE_PDF_API=true and add credentials."
+        )
+    
+    # Save uploaded file
+    logger.info("")
+    logger.info("="*80)
+    logger.info("🔵 ADOBE-ONLY ENDPOINT: /api/v1/documents/convert/pdf-to-word-adobe-only")
+    logger.info(f"   File: {file.filename}")
+    logger.info(f"   Size: {file.size if hasattr(file, 'size') else 'unknown'}")
+    logger.info(f"   Enable OCR: {enable_ocr}")
+    logger.info(f"   OCR Language: {ocr_language}")
+    logger.info("="*80)
+    logger.info("")
+    
+    input_path = await doc_service.save_upload_file(file)
+    
+    try:
+        output_filename = input_path.stem + ".docx"
+        output_path = doc_service.output_dir / output_filename
+        
+        logger.info("📞 Calling _pdf_to_word_adobe() directly (no fallback)...")
+        logger.info("")
+        
+        # Call Adobe directly - no fallback, no other tech
+        result = await doc_service._pdf_to_word_adobe(
+            input_path,
+            output_path,
+            enable_ocr=enable_ocr,
+            ocr_language=ocr_language
+        )
+        
+        logger.info("")
+        logger.info(f"✅ Adobe returned: {result}")
+        logger.info(f"   File exists: {result.exists()}")
+        logger.info(f"   Size: {result.stat().st_size if result.exists() else 0} bytes")
+        logger.info("")
+        
+        # Return file
+        response = FileResponse(
+            path=result,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=result.name
+        )
+        
+        # Add metadata headers
+        response.headers["X-Technology-Engine"] = "adobe-only"
+        response.headers["X-Technology-Name"] = "Adobe PDF Services (Direct)"
+        response.headers["X-Technology-Quality"] = "10/10"
+        response.headers["X-Technology-Type"] = "cloud"
+        response.headers["X-Technology-OCR"] = "true" if enable_ocr else "false"
+        response.headers["X-Technology-OCR-Language"] = ocr_language if enable_ocr else "none"
+        
+        logger.info("="*80)
+        logger.info("✅ ADOBE-ONLY RESPONSE: 200 OK")
+        logger.info(f"   File: {result.name}")
+        logger.info(f"   Size: {result.stat().st_size} bytes")
+        logger.info("="*80)
+        logger.info("")
+        
+        return response
+        
+    except Exception as e:
+        logger.error("")
+        logger.error("="*80)
+        logger.error("❌ ADOBE-ONLY ERROR")
+        logger.error(f"   Exception: {type(e).__name__}")
+        logger.error(f"   Message: {str(e)}")
+        logger.error("="*80)
+        logger.error("")
+        
+        # Log full traceback
+        import traceback
+        logger.error(f"Full traceback:\n{traceback.format_exc()}")
+        
+        await doc_service.cleanup_file(input_path)
+        raise HTTPException(
+            500,
+            f"Adobe PDF Services conversion failed: {str(e)}"
+        )
+
+
+@router.post("/convert/pdf-to-word-pdf2docx-only")
+async def convert_pdf_to_word_pdf2docx_only(
+    file: UploadFile = File(..., description="PDF file to convert"),
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    🟢 PDF2DOCX Library ONLY - Pure Python Local Test
+    
+    - **Pure Python library** - No cloud APIs, 100% local processing
+    - **7/10 quality** - Good for simple text PDFs
+    - **Free & fast** - No API costs, instant conversion
+    - **NO OCR support** - Cannot handle scanned PDFs
+    - **Purpose:** Debug and verify pdf2docx library is working
+    
+    ⚠️ NOTE: pdf2docx is disabled by default (reduces Docker image by 230MB)
+    ⚠️ To enable: Install opencv-python, PyMuPDF, pdf2docx in requirements.txt
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info("")
+    logger.info("="*80)
+    logger.info("🟢 PDF2DOCX-ONLY ENDPOINT: /api/v1/documents/convert/pdf-to-word-pdf2docx-only")
+    logger.info(f"   File: {file.filename}")
+    logger.info(f"   Size: {file.size if hasattr(file, 'size') else 'unknown'}")
+    logger.info("="*80)
+    logger.info("")
+    
+    # Check if pdf2docx is available
+    try:
+        from pdf2docx import Converter
+        logger.info("✅ pdf2docx library found")
+    except ImportError:
+        logger.error("❌ pdf2docx not installed")
+        raise HTTPException(
+            503,
+            "pdf2docx library not installed. Install: pip install pdf2docx opencv-python PyMuPDF"
+        )
+    
+    # Save uploaded file
+    input_path = await doc_service.save_upload_file(file)
+    
+    try:
+        output_filename = input_path.stem + ".docx"
+        output_path = doc_service.output_dir / output_filename
+        
+        logger.info("🔄 Starting pdf2docx conversion...")
+        logger.info(f"   Input: {input_path}")
+        logger.info(f"   Output: {output_path}")
+        logger.info("")
+        
+        # Use pdf2docx directly
+        import time
+        start = time.time()
+        
+        cv = Converter(str(input_path))
+        cv.convert(str(output_path), start=0, end=None)
+        cv.close()
+        
+        elapsed = time.time() - start
+        
+        logger.info("")
+        logger.info(f"✅ pdf2docx conversion completed in {elapsed:.2f}s")
+        logger.info(f"   Output file: {output_path}")
+        logger.info(f"   File exists: {output_path.exists()}")
+        logger.info(f"   Size: {output_path.stat().st_size if output_path.exists() else 0} bytes")
+        logger.info("")
+        
+        if not output_path.exists():
+            raise FileNotFoundError(f"Output file not created: {output_path}")
+        
+        # Return file
+        response = FileResponse(
+            path=output_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=output_path.name
+        )
+        
+        # Add metadata headers
+        response.headers["X-Technology-Engine"] = "pdf2docx"
+        response.headers["X-Technology-Name"] = "pdf2docx (Python Library)"
+        response.headers["X-Technology-Quality"] = "7/10"
+        response.headers["X-Technology-Type"] = "local"
+        response.headers["X-Technology-OCR"] = "false"
+        response.headers["X-Processing-Time"] = f"{elapsed:.2f}s"
+        
+        logger.info("="*80)
+        logger.info("✅ PDF2DOCX-ONLY RESPONSE: 200 OK")
+        logger.info(f"   File: {output_path.name}")
+        logger.info(f"   Size: {output_path.stat().st_size} bytes")
+        logger.info(f"   Time: {elapsed:.2f}s")
+        logger.info("="*80)
+        logger.info("")
+        
+        return response
+        
+    except Exception as e:
+        logger.error("")
+        logger.error("="*80)
+        logger.error("❌ PDF2DOCX-ONLY ERROR")
+        logger.error(f"   Exception: {type(e).__name__}")
+        logger.error(f"   Message: {str(e)}")
+        logger.error("="*80)
+        logger.error("")
+        
+        # Log full traceback
+        import traceback
+        logger.error(f"Full traceback:\n{traceback.format_exc()}")
+        
+        await doc_service.cleanup_file(input_path)
+        raise HTTPException(
+            500,
+            f"pdf2docx conversion failed: {str(e)}"
+        )
 
 
 @router.post("/convert/pdf-to-excel")
@@ -364,6 +703,110 @@ async def convert_pdf_to_excel(
     except Exception as e:
         await doc_service.cleanup_file(input_path)
         raise e
+
+
+@router.post("/convert/pdf-to-word-hybrid-vietnamese", response_class=FileResponse)
+async def convert_pdf_to_word_hybrid_vietnamese(
+    file: UploadFile = File(..., description="PDF file to convert"),
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    🌟 HYBRID APPROACH: Gemini OCR + Adobe Layout (Vietnamese scanned PDFs)
+    
+    **Best solution for Vietnamese scanned PDFs:**
+    - **Gemini AI**: Extracts Vietnamese text with 98% accuracy
+    - **Adobe PDF Services**: Preserves images and layout at 10/10 quality
+    - **Result**: Perfect Vietnamese text + Perfect images/layout = Best of both worlds!
+    
+    **Why hybrid:**
+    - Adobe: NO Vietnamese OCR support (50+ languages but not Vietnamese)
+    - Gemini: Excellent Vietnamese OCR but loses images/layout when generating Word
+    - Hybrid: Combines Gemini text accuracy with Adobe layout preservation
+    
+    **When to use:**
+    - ✅ Scanned Vietnamese documents with images/photos
+    - ✅ Vietnamese forms with handwritten content
+    - ✅ Vietnamese PDFs with complex layouts
+    
+    **Processing steps (logged in detail):**
+    1. Gemini OCR → Extract Vietnamese text (98% accuracy)
+    2. Adobe OCR (EN_US) → Preserve images/layout (100%)
+    3. Combine → Word document with Vietnamese text + images
+    
+    **Quality:**
+    - Text: 98% (Gemini Vietnamese OCR)
+    - Images: 100% preserved (Adobe SEARCHABLE_IMAGE_EXACT)
+    - Layout: 10/10 (Adobe AI)
+    
+    **Technical details:**
+    - Uses Gemini 2.0 Flash Vision for Vietnamese OCR
+    - Uses Adobe ExportPDF with SEARCHABLE_IMAGE_EXACT for layout
+    - Detailed logging at each step shows which technology is active
+    
+    **Returns:** Word document (.docx) with Vietnamese text + images
+    """
+    doc_service = DocumentService()
+    
+    # Save uploaded file
+    input_path = await doc_service.save_upload_file(file)
+    
+    try:
+        logger.info("")
+        logger.info("="*80)
+        logger.info("🌟 API ENDPOINT: /convert/pdf-to-word-hybrid-vietnamese")
+        logger.info(f"   User: {current_user.email}")
+        logger.info(f"   File: {file.filename}")
+        logger.info(f"   Size: {input_path.stat().st_size / 1024:.2f} KB")
+        logger.info("="*80)
+        logger.info("")
+        
+        # Check if Gemini and Adobe are both available
+        if not doc_service.use_gemini:
+            logger.error("❌ Gemini API not configured")
+            raise HTTPException(500, "Gemini API not configured. Please set GEMINI_API_KEY in .env")
+        
+        if not (doc_service.use_adobe and doc_service.adobe_credentials):
+            logger.error("❌ Adobe PDF Services not configured")
+            raise HTTPException(500, "Adobe PDF Services not configured. Please check .env credentials")
+        
+        # Convert using hybrid approach
+        output_path = await doc_service._pdf_to_word_hybrid_vietnamese(
+            input_path,
+            doc_service.output_dir / f"hybrid_{file.filename.rsplit('.', 1)[0]}.docx",
+            db=db
+        )
+        
+        # Return file
+        response = FileResponse(
+            path=output_path,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename=output_path.name
+        )
+        
+        # Add metadata headers
+        response.headers["X-Technology-Engine"] = "hybrid"
+        response.headers["X-Technology-Name"] = "Gemini + Adobe"
+        response.headers["X-Technology-Quality"] = "10/10"
+        response.headers["X-Technology-Type"] = "cloud"
+        response.headers["X-OCR-Language"] = "Vietnamese"
+        response.headers["X-Text-Source"] = "Gemini OCR"
+        response.headers["X-Layout-Source"] = "Adobe"
+        
+        logger.info("")
+        logger.info("="*80)
+        logger.info("✅ API RESPONSE: FileResponse sent to client")
+        logger.info(f"   Output: {output_path.name}")
+        logger.info(f"   Size: {output_path.stat().st_size / 1024:.2f} KB")
+        logger.info("="*80)
+        logger.info("")
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"❌ Hybrid conversion failed: {e}")
+        await doc_service.cleanup_file(input_path)
+        raise HTTPException(500, f"Hybrid conversion failed: {str(e)}")
 
 
 @router.post("/pdf/merge")
@@ -897,19 +1340,28 @@ async def ocr_pdf(
 async def smart_pdf_ocr(
     file: UploadFile = File(..., description="PDF file"),
     ai_engine: str = Form("gemini", description="AI engine: gemini or claude"),
-    language: str = Form("vi", description="Language for OCR: vi, en")
+    language: str = Form("vi", description="Language for OCR: vi, en"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)  # ← NEW: Require authentication
 ):
     """
     🤖 Smart PDF OCR - AI-powered text extraction for scanned PDFs
     
+    **⚠️ REQUIRES AUTHENTICATION + AI QUOTA**
+    
     **Smart Detection:**
     - Automatically detects if PDF is scanned (image-based)
-    - Uses direct text extraction for text-based PDFs (fast & free)
-    - Uses AI OCR (Gemini/Claude) only for scanned PDFs
+    - Uses direct text extraction for text-based PDFs (fast & free, no quota)
+    - Uses AI OCR (Gemini/Claude) only for scanned PDFs (uses quota)
     
     **AI Engines:**
     - `gemini`: Fast & cost-effective (~$0.000031/page)
     - `claude`: Highest accuracy (~$0.001464/page)
+    
+    **Quota System:**
+    - FREE tier: 3 AI requests/month
+    - PRO tier: 100 AI requests/month
+    - If quota exceeded, returns 403 with upgrade prompt
     
     **Languages:**
     - `vi`: Tiếng Việt (recommended for Vietnamese docs)
@@ -927,18 +1379,40 @@ async def smart_pdf_ocr(
     input_path = await doc_service.save_upload_file(file)
     
     try:
-        # Smart OCR processing
-        result = await doc_service.smart_pdf_ocr(
-            input_path, 
-            ai_engine=ai_engine,
-            language=language
-        )
+        # ✅ CHECK QUOTA FIRST (only if scanned PDF detected)
+        from app.services.document_service import is_pdf_scanned
+        is_scanned = is_pdf_scanned(input_path)
         
-        return {
-            "success": True,
-            "filename": file.filename,
-            **result
-        }
+        if is_scanned:
+            # Check quota trước khi gọi AI
+            quota_info = QuotaService.check_ai_quota(current_user, db)
+            logger.info(f"User {current_user.email} using AI OCR. Quota: {quota_info}")
+        
+        # Smart OCR processing
+        try:
+            result = await doc_service.smart_pdf_ocr(
+                input_path, 
+                ai_engine=ai_engine,
+                language=language,
+                db=db
+            )
+            
+            # ✅ COMMIT quota increment (AI call thành công)
+            if is_scanned:
+                db.commit()
+            
+            return {
+                "success": True,
+                "filename": file.filename,
+                "quota_used": quota_info if is_scanned else None,
+                **result
+            }
+            
+        except Exception as e:
+            # ❌ ROLLBACK quota nếu AI call thất bại
+            if is_scanned:
+                QuotaService.rollback_quota_increment(current_user, db)
+            raise e
         
     except HTTPException:
         raise
@@ -1466,6 +1940,7 @@ async def merge_word_files_to_pdf(
 @router.post("/batch/pdf-to-word")
 async def batch_convert_pdf_to_word(
     files: List[UploadFile] = File(..., description="Multiple PDF files"),
+    db: Session = Depends(get_db)
 ):
     """
     **Batch Convert** nhiều file PDF sang Word cùng lúc
@@ -1485,7 +1960,7 @@ async def batch_convert_pdf_to_word(
             try:
                 print(f"[Batch PDF→Word] Processing file {idx}/{len(files)}: {file.filename}")
                 input_path = await doc_service.save_upload_file(file)
-                output_path = await doc_service.pdf_to_word(input_path)
+                output_path = await doc_service.pdf_to_word(input_path, db=db)
                 output_files.append(output_path)
                 await doc_service.cleanup_file(input_path)
                 print(f"[Batch PDF→Word] ✓ Success: {file.filename} → {output_path.name}")
@@ -1767,7 +2242,8 @@ async def batch_compress_pdf(
 @router.post("/batch/pdf-to-multiple")
 async def batch_convert_pdf_to_multiple(
     files: List[UploadFile] = File(...),
-    format: str = Query(..., description="Target format: word, excel, or image")
+    format: str = Query(..., description="Target format: word, excel, or image"),
+    db: Session = Depends(get_db)
 ):
     """
     Bulk Convert: Chuyển đổi nhiều PDF sang định dạng mong muốn (Word/Excel/Image)
@@ -1808,7 +2284,7 @@ async def batch_convert_pdf_to_multiple(
                 
                 # Convert based on format
                 if format == "word":
-                    output_path = await doc_service.pdf_to_word(input_path)
+                    output_path = await doc_service.pdf_to_word(input_path, db=db)
                     output_files.append(output_path)
                     print(f"[Bulk PDF→Word] ✓ Success: {file.filename} → {output_path.name}")
                     
@@ -2898,4 +3374,374 @@ async def get_ai_providers():
     }
 
 
+# ============================================
+# OCR TO WORD ENDPOINT (Vietnamese AI-First)
+# ============================================
 
+@router.post("/ocr-to-word-demo", dependencies=[])
+async def ocr_to_word_demo(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Public demo OCR: always skip auth/quota and don't track usage."""
+    return await ocr_to_word(file=file, authorization=None, db=db)
+
+@router.post("/ocr-to-word", dependencies=[])
+async def ocr_to_word(
+    file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    🇻🇳 Trích xuất văn bản từ PDF → Word (Gemini 2.5 Flash - Perfect Vietnamese)
+    
+    Features:
+    - Auto-detect: Text-based hay Scanned PDF (for analytics only)
+    - Gemini 2.5 Flash PDF Upload: LUÔN LUÔN dùng cho TẤT CẢ PDF
+    - 98% accuracy cho tiếng Việt (perfect diacritics)
+    - Upload trực tiếp PDF (không convert image)
+    - Quota tracking: Tích hợp hệ thống quota
+    - Analytics logging: Track user behavior
+    - PUBLIC DEMO: Cho phép dùng thử không cần đăng nhập
+    
+    Why Gemini for ALL PDFs?
+    - PyMuPDF/PyPDF2: SAI DẤU tiếng Việt (tr ngày → từ ngày, quân trj → quản trị)
+    - Gemini: PERFECT Vietnamese diacritics, understands layout/tables
+    - Cost: $0.10-0.20/doc → Worth it for quality!
+    - Speed: 10-20s for 12 pages (upload entire PDF, not page-by-page)
+    
+    Process:
+    1. Upload PDF
+    2. Detect type (analytics only, không ảnh hưởng xử lý)
+    3. Upload PDF lên Gemini 2.5 Flash
+    4. Gemini processes all pages at once
+    5. Generate Word file with formatting
+    6. Log analytics
+    7. Return Word file
+    
+    Returns:
+        Word file (.docx) with PERFECT Vietnamese text extraction
+    """
+    temp_pdf_path = None
+    temp_word_path = None
+    start_time = time.time()
+    
+    # Get current user from header (optional)
+    current_user = None
+    if authorization:
+        try:
+            from app.core.security import decode_access_token
+            if authorization.startswith("Bearer "):
+                token = authorization.replace("Bearer ", "")
+                payload = decode_access_token(token)
+                user_id = payload.get("user_id")
+                if user_id:
+                    current_user = db.query(User).filter(User.id == user_id).first()
+        except:
+            pass  # Ignore errors - demo mode
+    
+    is_demo_user = current_user is None  # Public demo mode
+    
+    try:
+        # Validate file type
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(400, "Chỉ hỗ trợ file PDF. Vui lòng chọn file PDF.")
+
+        # NOTE: Do NOT check/increment quota yet.
+        # Only scanned PDFs that require AI OCR should consume quota.
+        logger.info("ℹ️ Quota will be checked only if AI OCR is needed")
+        
+        # Log user action: processing_start (only for authenticated users)
+        if not is_demo_user:
+            from app.services.ocr_analytics_service import OCRAnalyticsService
+            import uuid
+            session_id = str(uuid.uuid4())
+            
+            OCRAnalyticsService.log_user_action(
+                db=db,
+                user_id=current_user.id,
+                session_id=session_id,
+                action_type="processing_start",
+                action_metadata={"filename": file.filename},
+                page_url="/ocr-to-word"
+            )
+        
+        # Save uploaded file
+        logger.info(f"📥 Saving uploaded file: {file.filename}")
+        upload_dir = Path("uploads/ocr")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # IMPORTANT: Never use user-provided filename for filesystem paths.
+        # Some filenames (Vietnamese, special chars, path separators) can break Windows paths.
+        import uuid
+        temp_pdf_path = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}.pdf"
+        
+        async with aiofiles.open(temp_pdf_path, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+
+        # Early sanity checks for problematic PDFs (encrypted/corrupt)
+        try:
+            import PyPDF2
+            pdf_reader = PyPDF2.PdfReader(str(temp_pdf_path))
+            if getattr(pdf_reader, "is_encrypted", False):
+                raise HTTPException(
+                    400,
+                    "🔒 File PDF đang được đặt mật khẩu/mã hóa. Vui lòng gỡ mật khẩu (Unlock) rồi thử lại."
+                )
+            # Touch pages to surface some structural errors early
+            _ = len(getattr(pdf_reader, "pages", []))
+        except HTTPException:
+            raise
+        except Exception as e:
+            msg = str(e).lower()
+            if any(k in msg for k in ["encrypted", "password", "decrypt"]):
+                raise HTTPException(
+                    400,
+                    "🔒 File PDF đang được đặt mật khẩu/mã hóa. Vui lòng gỡ mật khẩu (Unlock) rồi thử lại."
+                )
+            if any(k in msg for k in ["pdfreaderror", "invalid", "corrupt", "broken", "xref", "eof"]):
+                raise HTTPException(
+                    400,
+                    "📄 File PDF có thể bị lỗi/corrupt hoặc không đúng định dạng. Vui lòng thử tải lại file hoặc xuất (Export) PDF lại rồi thử lại."
+                )
+            # Otherwise: continue; OCRService may still handle it via PyMuPDF
+        
+        file_size_bytes = temp_pdf_path.stat().st_size
+        logger.info(f"✅ File saved: {file_size_bytes} bytes")
+        
+        # Initialize OCR service with Gemini
+        from app.services.gemini_service import GeminiService
+        from app.services.ocr_service import OCRService
+        
+        user_id = current_user.id if current_user else None
+        gemini = GeminiService(db, user_id=user_id)
+        ocr_service = OCRService(gemini)
+        
+        # Step 1: Detect PDF type (avoid AI calls until quota is confirmed)
+        logger.info("🔍 Detecting PDF type...")
+        metadata = {"total_pages": 0, "extracted_text_length": 0, "images_found": 0, "confidence": "low"}
+
+        # Method 1 (fast): text extraction on first 3 pages
+        try:
+            import PyPDF2
+            pdf_reader = PyPDF2.PdfReader(str(temp_pdf_path))
+            metadata["total_pages"] = len(pdf_reader.pages)
+            extracted_preview = ""
+            for page in pdf_reader.pages[:3]:
+                extracted_preview += (page.extract_text() or "")
+            metadata["extracted_text_length"] = len(extracted_preview.strip())
+        except Exception:
+            # We'll fall back to image ratio
+            pass
+
+        if metadata.get("extracted_text_length", 0) > OCRService.TEXT_LENGTH_THRESHOLD:
+            is_scanned = False
+            detection_method = "text_extraction"
+            metadata["confidence"] = "high"
+        else:
+            # Method 2: image ratio
+            images_found = ocr_service._count_images_in_pdf(temp_pdf_path)
+            metadata["images_found"] = images_found
+            total_pages = max(1, int(metadata.get("total_pages") or 1))
+            image_ratio = images_found / total_pages
+            if image_ratio > OCRService.IMAGE_RATIO_THRESHOLD:
+                is_scanned = True
+                detection_method = "image_ratio"
+                metadata["confidence"] = "medium"
+            else:
+                # Ambiguous → treat as scanned (safer) but this will require quota for authenticated users
+                is_scanned = True
+                detection_method = "ambiguous_fallback"
+                metadata["confidence"] = "low"
+        
+        logger.info(f"📊 Detection result: {'SCANNED' if is_scanned else 'TEXT-BASED'} (method: {detection_method})")
+
+        # ALWAYS use Gemini AI - Even text-based PDFs need it for perfect Vietnamese
+        # PyMuPDF/PyPDF2 fail miserably with Vietnamese diacritics
+        quota_incremented = False
+        if not is_demo_user:
+            logger.info(f"🔍 Checking AI quota for user {current_user.id} (using Gemini for perfect Vietnamese)...")
+            quota_info_checked = QuotaService.check_ai_quota(current_user, db)
+            quota_incremented = True
+        else:
+            logger.info("🎭 Demo mode - skipping quota check")
+        
+        # Step 2: Extract text
+        logger.info("📝 Extracting text...")
+        try:
+            extracted_text = ocr_service.extract_text_from_pdf(temp_pdf_path, is_scanned)
+        except Exception:
+            # Roll back quota increment if AI OCR failed
+            if not is_demo_user and 'quota_incremented' in locals() and quota_incremented:
+                try:
+                    QuotaService.rollback_quota_increment(current_user, db)
+                except Exception:
+                    pass
+            raise
+        
+        if not extracted_text or len(extracted_text.strip()) < 10:
+            raise HTTPException(400, "Không thể trích xuất văn bản từ file này. Vui lòng thử file khác.")
+        
+        # Step 3: Create Word document
+        logger.info("📄 Creating Word document...")
+        temp_word_path = upload_dir / f"OCR_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        
+        ocr_service.create_word_document(
+            text=extracted_text,
+            output_path=temp_word_path,
+            title=f"Trích xuất văn bản - {file.filename}"
+        )
+        
+        processing_time = time.time() - start_time
+        logger.info(f"✅ Processing completed in {processing_time:.2f}s")
+        
+        # Log analytics (success) - only for authenticated users
+        if not is_demo_user:
+            OCRAnalyticsService.log_ocr_usage(
+                db=db,
+                user_id=current_user.id,
+                file_name=file.filename,
+                file_size_bytes=file_size_bytes,
+                file_type="application/pdf",
+                total_pages=metadata.get("total_pages", 1),
+                detection_method=detection_method,
+                is_scanned=is_scanned,
+                processing_time_seconds=processing_time,
+                gemini_model_used="gemini-2.5-flash",  # Always use Gemini
+                success=True,
+                downloaded=False  # Will be updated when user downloads
+            )
+        
+        # Commit quota increment after successful AI extraction
+        if not is_demo_user and 'quota_incremented' in locals() and quota_incremented:
+            db.commit()
+
+        # Refetch quota (updated after use) - only for authenticated users
+        if not is_demo_user:
+            quota_info = QuotaService.get_user_quota_info(current_user)
+        else:
+            quota_info = {"ai_usage_this_month": 0, "ai_quota_monthly": 0}
+        
+        # Return Word file
+        original_stem = Path(file.filename).stem
+        output_filename_utf8 = f"OCR_{original_stem}.docx"
+
+        # Create an ASCII-safe fallback filename for legacy clients
+        import re
+        import unicodedata
+        ascii_stem = (
+            unicodedata.normalize("NFKD", original_stem)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+        ascii_stem = re.sub(r"[^A-Za-z0-9._-]+", "_", ascii_stem).strip("_")
+        if not ascii_stem:
+            ascii_stem = "document"
+        output_filename_ascii = f"OCR_{ascii_stem}.docx"
+
+        encoded_filename = encode_filename(output_filename_utf8)
+
+        return FileResponse(
+            path=str(temp_word_path),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "X-Quota-Used": str(quota_info.get("usage_this_month", 0) if isinstance(quota_info, dict) else 0),
+                "X-Quota-Total": str(quota_info.get("quota_monthly", 0) if isinstance(quota_info, dict) else 0),
+                "X-Processing-Time": f"{processing_time:.2f}s",
+                "X-Is-Scanned": str(is_scanned).lower(),
+                "X-Detection-Method": detection_method,
+                "X-Total-Pages": str(metadata.get("total_pages", 0)),
+                "X-Text-Length": str(len(extracted_text)),
+                "X-Confidence": metadata.get("confidence", "low"),
+                "X-AI-Used": str(is_scanned).lower(),
+                "Content-Disposition": (
+                    f'attachment; filename="{output_filename_ascii}"; '
+                    f"filename*=UTF-8''{encoded_filename}"
+                ),
+            },
+        )
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+        
+    except Exception as e:
+        import uuid
+        import traceback
+        error_id = uuid.uuid4().hex[:10]
+        logger.error(f"❌ OCR error [{error_id}]: {e}", exc_info=True)
+
+        # Persist traceback to a local log file for file-specific debugging
+        try:
+            logs_dir = Path("logs")
+            logs_dir.mkdir(parents=True, exist_ok=True)
+            log_path = logs_dir / "ocr_errors.log"
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write("\n" + "=" * 80 + "\n")
+                f.write(f"time={datetime.now().isoformat()} error_id={error_id}\n")
+                f.write(f"filename={getattr(file, 'filename', None)}\n")
+                if 'file_size_bytes' in locals():
+                    f.write(f"file_size_bytes={file_size_bytes}\n")
+                if temp_pdf_path:
+                    f.write(f"temp_pdf_path={temp_pdf_path}\n")
+                if 'detection_method' in locals():
+                    f.write(f"detection_method={detection_method}\n")
+                if 'is_scanned' in locals():
+                    f.write(f"is_scanned={is_scanned}\n")
+                f.write(f"exception={type(e).__name__}: {e}\n")
+                f.write(traceback.format_exc())
+        except Exception:
+            pass
+        
+        # Log analytics (error) - only for authenticated users
+        if not is_demo_user:
+            try:
+                from app.services.ocr_analytics_service import OCRAnalyticsService
+                OCRAnalyticsService.log_ocr_usage(
+                    db=db,
+                    user_id=current_user.id,
+                    file_name=file.filename if file else "unknown",
+                    file_size_bytes=file_size_bytes if 'file_size_bytes' in locals() else 0,
+                    file_type="application/pdf",
+                    success=False,
+                    error_message=str(e),
+                    error_type=type(e).__name__
+                )
+            except:
+                pass  # Don't fail if analytics fails
+
+        # Roll back quota increment if we consumed quota but failed later
+        if not is_demo_user and 'quota_incremented' in locals() and quota_incremented:
+            try:
+                QuotaService.rollback_quota_increment(current_user, db)
+            except Exception:
+                pass
+        
+        # Friendly error message (classify common PDF issues)
+        msg = str(e).lower()
+        if any(k in msg for k in ["encrypted", "password", "decrypt"]):
+            raise HTTPException(
+                400,
+                "🔒 File PDF đang được đặt mật khẩu/mã hóa. Vui lòng gỡ mật khẩu (Unlock) rồi thử lại."
+            )
+        if any(k in msg for k in ["pdfreaderror", "invalid", "corrupt", "broken", "xref", "eof", "cannot open broken document"]):
+            raise HTTPException(
+                400,
+                "📄 File PDF có thể bị lỗi/corrupt hoặc không đúng định dạng. Vui lòng thử tải lại file hoặc xuất (Export) PDF lại rồi thử lại."
+            )
+        if "quota" in msg:
+            raise HTTPException(403, "❌ Bạn đã hết quota. Vui lòng nâng cấp gói.")
+        if "memory" in msg:
+            raise HTTPException(400, "🧠 File quá lớn. Vui lòng thử file nhỏ hơn hoặc tách file ra.")
+
+        raise HTTPException(500, f"😔 Không thể xử lý file này (Mã lỗi: {error_id}). Vui lòng thử lại sau.")
+        
+    finally:
+        # Cleanup temporary files (keep Word for download, delete PDF)
+        if temp_pdf_path and temp_pdf_path.exists():
+            try:
+                temp_pdf_path.unlink()
+                logger.info(f"🗑️ Cleaned up temp PDF: {temp_pdf_path}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup PDF: {e}")

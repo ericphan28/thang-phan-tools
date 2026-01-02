@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Info, Zap, DollarSign, Star, Loader2 } from 'lucide-react';
+import api from '@/services/api';
 import {
   Select,
   SelectContent,
@@ -63,8 +64,8 @@ export function GeminiModelSelector({
   useEffect(() => {
     async function fetchModels() {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/documents/gemini/models');
-        const data: GeminiModelsResponse = await response.json();
+        const response = await api.get('/documents/gemini/models');
+        const data: GeminiModelsResponse = response.data;
         
         setModels(data.models);
         

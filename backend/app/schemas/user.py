@@ -62,6 +62,14 @@ class UserUpdate(BaseModel):
         return v
 
 
+class ProfileUpdate(BaseModel):
+    """Schema for user updating their own profile"""
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = Field(None, max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=255)
+
+
 class UserRoleAssignment(BaseModel):
     """Schema for assigning roles to user"""
     role_ids: List[int] = Field(..., description="List of role IDs to assign")

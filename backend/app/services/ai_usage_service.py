@@ -13,15 +13,39 @@ if TYPE_CHECKING:
 
 from app.core.database import SessionLocal
 
-# Pricing per 1M tokens (USD)
+# Pricing per 1M tokens (USD) - Updated December 26, 2025
+# Source: https://ai.google.dev/pricing
 PRICING = {
-    "gemini-2.5-flash": {"input": 0.50, "output": 2.00},
-    "gemini-2.5-pro": {"input": 1.25, "output": 5.00},
-    "gemini-2.0-flash-exp": {"input": 0.075, "output": 0.30},  # Experimental pricing
+    # Gemini 3 Series
+    "gemini-3-pro-preview": {"input": 2.00, "output": 12.00},  # includes thinking tokens
+    "gemini-3-flash-preview": {"input": 0.50, "output": 3.00},
+    
+    # Gemini 2.5 Series
+    "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
+    "gemini-2.5-flash-preview-09-2025": {"input": 0.30, "output": 2.50},
+    "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
+    "gemini-2.5-flash-lite-preview-09-2025": {"input": 0.10, "output": 0.40},
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+    
+    # Gemini 2.0 Series
     "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
+    "gemini-2.0-flash-exp": {"input": 0.075, "output": 0.30},
+    "gemini-2.0-flash-lite": {"input": 0.075, "output": 0.30},
+    
+    # Claude Models
     "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
     "claude-3-5-sonnet-20241022": {"input": 3.00, "output": 15.00},
     "claude-3-opus-20240229": {"input": 15.00, "output": 75.00},
+}
+
+# Free tier configurations
+FREE_TIER_LIMITS = {
+    "gemini": {
+        "requests_per_minute": 15,
+        "requests_per_day": 1500,
+        "tokens_per_minute": 1_000_000,
+        "is_free": True  # Mark as free tier
+    }
 }
 
 
@@ -61,8 +85,27 @@ def get_api_key(provider: str, db: Session = None) -> Optional[str]:
     return key.api_key if key else None
 
 
-def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> Dict[str, float]:
-    """Calculate cost based on token usage"""
+def calculate_cost(model: str, input_tokens: int, output_tokens: int, provider: str = None) -> Dict[str, float]:
+    """
+    Calculate cost based on token usage
+    
+    Args:
+        model: Model name
+        input_tokens: Number of input tokens
+        output_tokens: Number of output tokens
+        provider: Provider name (gemini, claude, etc.) - used to check free tier
+    
+    Returns:
+        Dict with input_cost, output_cost, total_cost
+    """
+    # Check if this is a free tier provider
+    if provider and provider in FREE_TIER_LIMITS and FREE_TIER_LIMITS[provider].get("is_free"):
+        return {
+            "input_cost": 0.0,
+            "output_cost": 0.0,
+            "total_cost": 0.0
+        }
+    
     pricing = PRICING.get(model, {"input": 0.0, "output": 0.0})
     
     input_cost = (input_tokens / 1_000_000) * pricing["input"]
@@ -99,8 +142,8 @@ def log_usage(
         if not key:
             return None
         
-        # Calculate costs
-        costs = calculate_cost(model, input_tokens, output_tokens)
+        # Calculate costs (pass provider to check free tier)
+        costs = calculate_cost(model, input_tokens, output_tokens, provider)
         
         # Create log entry
         log = AIUsageLog(

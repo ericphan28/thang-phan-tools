@@ -3,6 +3,9 @@ import { Upload, Loader2, Search, CheckCircle2, XCircle, Clock, FileText } from 
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { QuotaWarning } from '../components/QuotaWarning';
+import { useQuota } from '../hooks/useQuota';
+import { Skeleton } from '../components/ui/skeleton';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
@@ -40,6 +43,9 @@ export default function OCRDemoPage() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<ComparisonResponse | null>(null);
   const [language, setLanguage] = useState('vi');
+  
+  // ✅ NEW: Fetch quota info
+  const { quota, loading: quotaLoading, refetch: refetchQuota } = useQuota();
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -92,9 +98,25 @@ export default function OCRDemoPage() {
 
       setResults(response.data);
       toast.success('So sánh OCR thành công!');
+      
+      // ✅ Refetch quota sau khi dùng AI
+      refetchQuota();
     } catch (error: any) {
       console.error('OCR comparison error:', error);
-      toast.error(error.response?.data?.detail || 'Lỗi khi so sánh OCR');
+      
+      // ✅ Handle quota exceeded error
+      if (error.response?.status === 403 && error.response?.data?.detail?.error_code === 'QUOTA_EXCEEDED') {
+        const detail = error.response.data.detail;
+        toast.error(
+          <div>
+            <p className="font-medium">{detail.message}</p>
+            <p className="text-sm mt-1">{detail.suggestion}</p>
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(error.response?.data?.detail || 'Lỗi khi so sánh OCR');
+      }
     } finally {
       setLoading(false);
     }
@@ -129,6 +151,13 @@ export default function OCRDemoPage() {
           So sánh 4 công nghệ OCR: Tesseract, Gemini Vision AI, Claude AI, Adobe PDF Services
         </p>
       </div>
+
+      {/* ✅ NEW: Quota Warning */}
+      {quotaLoading ? (
+        <Skeleton className="h-32 w-full mb-6" />
+      ) : quota ? (
+        <QuotaWarning quotaInfo={quota} className="mb-6" />
+      ) : null}
 
       {/* Upload Section */}
       <Card className="mb-8">

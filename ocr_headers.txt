@@ -1,0 +1,15 @@
+HTTP/1.1 100 Continue
+
+HTTP/1.1 200 OK
+date: Sun, 28 Dec 2025 12:12:23 GMT
+server: uvicorn
+x-quota-used: 0
+x-quota-total: 0
+x-processing-time: 0.66s
+content-disposition: attachment; filename="OCR_test_pdf_with_text.docx"; filename*=UTF-8''OCR_test_pdf_with_text.docx
+content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document
+accept-ranges: bytes
+content-length: 35629
+last-modified: Sun, 28 Dec 2025 12:12:25 GMT
+etag: "a717a2fb66b302772ede2961745dcbd9"
+

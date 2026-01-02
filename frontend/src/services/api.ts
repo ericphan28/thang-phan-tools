@@ -10,10 +10,23 @@ const api = axios.create({
 
 // Add token to requests
 api.interceptors.request.use((config) => {
+  const skipAuth = (config.headers as any)?.['X-Skip-Auth'] === 'true';
+
   const token = localStorage.getItem('access_token');
-  if (token) {
+  if (token && !skipAuth && !config.headers.Authorization) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Don't send this internal header to backend
+  if ((config.headers as any)?.['X-Skip-Auth']) {
+    delete (config.headers as any)['X-Skip-Auth'];
+  }
+  
+  // If sending FormData, remove Content-Type to let browser set it with boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  
   return config;
 });
 

@@ -2,7 +2,7 @@
 FastAPI dependencies for authentication and authorization
 """
 from typing import List, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -20,7 +20,7 @@ async def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     """
-    Get current authenticated user from JWT token
+    Get current authenticated user from JWT token (REQUIRED)
     
     Usage:
         @router.get("/me")
@@ -67,6 +67,62 @@ async def get_current_user(
         )
     
     return user
+
+
+async def get_current_user_optional(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """
+    Get current authenticated user from JWT token (OPTIONAL - for demo/public routes)
+    
+    Returns None if no token provided or token invalid (doesn't raise error)
+    
+    Usage:
+        @router.post("/ocr-demo")
+        async def ocr_demo(user: Optional[User] = Depends(get_current_user_optional)):
+            if user:
+                # Authenticated user - track quota
+                pass
+            else:
+                # Demo user - no tracking
+                pass
+    
+    Args:
+        authorization: Authorization header (Bearer token) - OPTIONAL
+        db: Database session
+    
+    Returns:
+        User object if authenticated, None if not
+    """
+    if not authorization:
+        return None
+    
+    try:
+        # Extract token from "Bearer <token>"
+        if not authorization.startswith("Bearer "):
+            return None
+            
+        token = authorization.replace("Bearer ", "")
+        
+        # Decode and verify token
+        payload = decode_access_token(token)
+        user_id: Optional[int] = payload.get("user_id")
+        
+        if user_id is None:
+            return None
+        
+        # Get user from database
+        user = db.query(User).filter(User.id == user_id).first()
+        
+        if user is None or not user.is_active:
+            return None
+        
+        return user
+    
+    except Exception:
+        # Any error → return None (demo mode)
+        return None
 
 
 async def get_current_active_user(

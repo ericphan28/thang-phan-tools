@@ -15,6 +15,10 @@ import type {
   ActivityStats,
 } from '../types';
 
+// Export subscription service
+export { default as subscriptionService } from './subscription';
+export type * from './subscription';
+
 export const authService = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await api.post('/auth/login', credentials);
@@ -90,6 +94,15 @@ export const userService = {
   deactivateUser: async (id: number): Promise<User> => {
     const response = await api.post(`/users/${id}/deactivate`);
     return response.data;
+  },
+
+  updateProfile: async (data: { full_name: string; email: string; phone: string; address: string }): Promise<User> => {
+    const response = await api.put('/auth/me/profile', data);
+    return response.data;
+  },
+
+  changePassword: async (data: { old_password: string; new_password: string }): Promise<void> => {
+    await api.post('/auth/change-password', data);
   },
 };
 

@@ -34,9 +34,37 @@ class Settings(BaseSettings):
     PORT: int = 8000
     WORKERS: int = 4
     
-    # Database
-    # DATABASE_URL: str = "postgresql://utility_user:password@localhost:5432/utility_db"
-    DATABASE_URL: str = "sqlite:///./utility.db"  # Relative path in backend folder
+    # Database Configuration (Smart Detection)
+    DB_USER: str = "utility_user"
+    DB_PASSWORD: str = "your_password_here"
+    DB_NAME: str = "utility_db"
+    DB_PORT: int = 5432
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        """
+        Smart database URL detection:
+        - Inside Docker (Production): Use internal 'postgres' hostname
+        - Outside Docker (Development): Use VPS public IP
+        
+        This allows zero-config deployment:
+        - Local: postgresql://user:pass@165.99.59.47:5432/db
+        - Production: postgresql://user:pass@postgres:5432/db
+        """
+        # Check if running inside Docker container
+        is_docker = os.path.exists('/.dockerenv') or os.path.exists('/run/.containerenv')
+        
+        if is_docker:
+            # Production - use Docker internal network
+            db_host = "postgres"
+            print(f"🐳 Running in Docker - Using internal DB: {db_host}")
+        else:
+            # Development - use VPS public IP
+            db_host = os.getenv("DB_HOST", "165.99.59.47")
+            print(f"💻 Running on localhost - Using remote DB: {db_host}")
+        
+        connection_string = f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{db_host}:{self.DB_PORT}/{self.DB_NAME}"
+        return connection_string
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

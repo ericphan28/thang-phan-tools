@@ -4,8 +4,13 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { TooltipProvider } from './components/ui/tooltip';
 import Layout from './components/layout/Layout';
+import AdminRoute from './components/layout/AdminRoute';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
+import PublicPricingPage from './pages/public/PublicPricingPage';
+import UserDashboard from './pages/user/UserDashboard';
+import UserProfilePage from './pages/user/UserProfilePage';
 import DashboardPage from './pages/DashboardPage';
 import UsersPage from './pages/UsersPage';
 import RolesPage from './pages/RolesPage';
@@ -14,11 +19,19 @@ import ToolsPage from './pages/ToolsPage';
 import AdobePdfPage from './pages/AdobePdfPage';
 import Mau2CPage from './pages/Mau2CPage';
 import OCRDemoPage from './pages/OCRDemoPage';
+import OCRToWordPage from './pages/OCRToWordPage';
 import AIAdminDashboardPage from './pages/AIAdminDashboardPage';
 import AIKeysManagementPage from './pages/AIKeysManagementPage';
 import TextToWordPage from './pages/TextToWordPage';
 import DataVisualizationPage from './pages/DataVisualizationPage';
 import DeploymentMonitor from './pages/DeploymentMonitor';
+import UserSubscriptionPage from './pages/UserSubscriptionPage';
+import PricingPage from './pages/PricingPage';
+import BillingHistoryPage from './pages/BillingHistoryPage';
+import WorkflowReviewPage from './pages/WorkflowReviewPage';
+import KiemTraTheThuPage from './pages/KiemTraTheThuPage';
+import DocumentToolsPage from './pages/DocumentToolsPage';
+import AdobeOnlyTestPage from './pages/AdobeOnlyTestPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -38,71 +51,136 @@ function App() {
           <BrowserRouter>
             <Toaster
               position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-                padding: '16px',
-                borderRadius: '8px',
-              },
-              success: {
+              toastOptions={{
                 duration: 3000,
                 style: {
-                  background: '#10b981',
+                  background: '#363636',
                   color: '#fff',
+                  padding: '16px',
+                  borderRadius: '8px',
                 },
-                iconTheme: {
-                  primary: '#fff',
-                  secondary: '#10b981',
+                success: {
+                  duration: 3000,
+                  style: {
+                    background: '#10b981',
+                    color: '#fff',
+                  },
+                  iconTheme: {
+                    primary: '#fff',
+                    secondary: '#10b981',
+                  },
                 },
-              },
-              error: {
-                duration: 5000,
-                style: {
-                  background: '#ef4444',
-                  color: '#fff',
+                error: {
+                  duration: 5000,
+                  style: {
+                    background: '#ef4444',
+                    color: '#fff',
+                  },
+                  iconTheme: {
+                    primary: '#fff',
+                    secondary: '#ef4444',
+                  },
                 },
-                iconTheme: {
-                  primary: '#fff',
-                  secondary: '#ef4444',
+                loading: {
+                  style: {
+                    background: '#3b82f6',
+                    color: '#fff',
+                  },
                 },
-              },
-              loading: {
-                style: {
-                  background: '#3b82f6',
-                  color: '#fff',
-                },
-              },
-            }}
-          />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
+              }}
+            />
+            <Routes>
+              {/* Public Routes - No authentication required */}
+              <Route path="/" element={<HomePage />} />
+              <Route path="/pricing" element={<PublicPricingPage />} />
+              <Route path="/workflow-review" element={<WorkflowReviewPage />} />
+              <Route path="/demo/ocr" element={<OCRToWordPage />} />
+              <Route path="/demo/adobe-test" element={<AdobeOnlyTestPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* User Routes - Requires authentication */}
+              <Route
+                path="/user"
+                element={
+                  <ProtectedRoute>
+                    <UserDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/user/profile" element={
                 <ProtectedRoute>
-                  <Layout />
+                  <UserProfilePage />
                 </ProtectedRoute>
-              }
-            >
-              <Route index element={<DashboardPage />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="roles" element={<RolesPage />} />
-              <Route path="logs" element={<ActivityLogsPage />} />
-              <Route path="tools" element={<ToolsPage />} />
-              <Route path="adobe-pdf" element={<AdobePdfPage />} />
-              <Route path="mau-2c" element={<Mau2CPage />} />
-              <Route path="ocr-demo" element={<OCRDemoPage />} />
-              <Route path="text-to-word" element={<TextToWordPage />} />
-              <Route path="data-visualization" element={<DataVisualizationPage />} />
-              <Route path="ai-admin" element={<AIAdminDashboardPage />} />
-              <Route path="ai-keys" element={<AIKeysManagementPage />} />
-              <Route path="deployment" element={<DeploymentMonitor />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+              } />
+              <Route path="/user/subscription" element={
+                <ProtectedRoute>
+                  <UserSubscriptionPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/pricing" element={
+                <ProtectedRoute>
+                  <PricingPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/billing" element={
+                <ProtectedRoute>
+                  <BillingHistoryPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/ocr-to-word" element={
+                <ProtectedRoute>
+                  <OCRToWordPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/kiem-tra-the-thuc" element={
+                <ProtectedRoute>
+                  <KiemTraTheThuPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/document-tools" element={
+                <ProtectedRoute>
+                  <DocumentToolsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/user/adobe-test" element={
+                <ProtectedRoute>
+                  <AdobeOnlyTestPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin Routes - Requires superuser */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <Layout />
+                  </AdminRoute>
+                }
+              >
+                <Route index element={<DashboardPage />} />
+                <Route path="users" element={<UsersPage />} />
+                <Route path="roles" element={<RolesPage />} />
+                <Route path="logs" element={<ActivityLogsPage />} />
+                <Route path="tools" element={<ToolsPage />} />
+                <Route path="adobe-pdf" element={<AdobePdfPage />} />
+                <Route path="mau-2c" element={<Mau2CPage />} />
+                <Route path="kiem-tra-the-thuc" element={<KiemTraTheThuPage />} />
+                <Route path="ocr-demo" element={<OCRDemoPage />} />
+                <Route path="ocr-to-word" element={<OCRToWordPage />} />
+                <Route path="text-to-word" element={<TextToWordPage />} />
+                <Route path="data-visualization" element={<DataVisualizationPage />} />
+                <Route path="ai-admin" element={<AIAdminDashboardPage />} />
+                <Route path="ai-keys" element={<AIKeysManagementPage />} />
+                <Route path="deployment" element={<DeploymentMonitor />} />
+                <Route path="subscription" element={<UserSubscriptionPage />} />
+                <Route path="pricing" element={<PricingPage />} />
+                <Route path="billing" element={<BillingHistoryPage />} />
+                <Route path="adobe-test" element={<AdobeOnlyTestPage />} />
+              </Route>
+              
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

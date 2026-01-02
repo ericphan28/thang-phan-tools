@@ -27,14 +27,27 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=True)
+    phone = Column(String(20), nullable=True)
+    address = Column(String(255), nullable=True)
+    
+    # NOTE: Project relationship commented out (not in auth_models.py scope)
+    # projects = relationship("Project", back_populates="user", lazy="dynamic")
+    
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
+    # Subscription & Quota fields (Phase 1: Quota System)
+    subscription_tier = Column(String(20), default="FREE", nullable=False)  # FREE/PRO/TEAM/ENTERPRISE
+    ai_quota_monthly = Column(Integer, default=3, nullable=False)  # FREE: 3, PRO: 100, TEAM: unlimited
+    ai_usage_this_month = Column(Integer, default=0, nullable=False)
+    quota_reset_date = Column(DateTime, default=lambda: datetime.utcnow(), nullable=True)
+    
     # Relationships
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     activity_logs = relationship("ActivityLog", back_populates="user", cascade="all, delete-orphan")
+    ocr_logs = relationship("OCRUsageLog", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}', email='{self.email}')>"

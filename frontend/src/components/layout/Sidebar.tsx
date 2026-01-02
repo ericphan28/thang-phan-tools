@@ -1,22 +1,25 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X, FileText, FileEdit, Search, Key, BarChart3, Sparkles, TrendingUp, Rocket } from 'lucide-react';
+import { LayoutDashboard, Users, Shield, Activity, LogOut, Wrench, X, FileText, FileEdit, Search, Key, BarChart3, Sparkles, TrendingUp, Rocket, CreditCard, DollarSign, CheckSquare } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Tổng quan', path: '/' },
-  { icon: Users, label: 'Người dùng', path: '/users' },
-  { icon: Shield, label: 'Vai trò', path: '/roles' },
-  { icon: Activity, label: 'Nhật ký', path: '/logs' },
-  { icon: Wrench, label: 'Công cụ', path: '/tools' },
-  { icon: FileText, label: 'Adobe PDF', path: '/adobe-pdf' },
-  { icon: FileEdit, label: 'Mẫu 2C', path: '/mau-2c', badge: '🆕 NEW' },
-  { icon: Search, label: 'OCR Demo', path: '/ocr-demo', badge: '🔥 DEMO' },
-  { icon: Sparkles, label: 'AI Text→Word', path: '/text-to-word', badge: '✨ AI' },
-  { icon: TrendingUp, label: 'AI Visualization', path: '/data-visualization', badge: '📊 NEW' },
-  { icon: BarChart3, label: 'AI Admin', path: '/ai-admin' },
-  { icon: Key, label: 'AI Keys', path: '/ai-keys' },
-  { icon: Rocket, label: 'Deployment', path: '/deployment', badge: '🚀 NEW' },
+  { icon: LayoutDashboard, label: 'Tổng quan', path: '/admin' },
+  { icon: Users, label: 'Người dùng', path: '/admin/users' },
+  { icon: Shield, label: 'Vai trò', path: '/admin/roles' },
+  { icon: Activity, label: 'Nhật ký', path: '/admin/logs' },
+  { icon: Wrench, label: 'Công cụ', path: '/admin/tools' },
+  { icon: FileText, label: 'Adobe PDF', path: '/admin/adobe-pdf' },
+  { icon: FileEdit, label: 'Mẫu 2C', path: '/admin/mau-2c', badge: '🆕 NEW' },
+  { icon: CheckSquare, label: 'Kiểm tra thể thức', path: '/admin/kiem-tra-the-thuc', badge: '📋 NEW' },
+  { icon: Search, label: 'OCR Demo', path: '/admin/ocr-demo', badge: '🔥 DEMO' },
+  { icon: Sparkles, label: 'AI Text→Word', path: '/admin/text-to-word', badge: '✨ AI' },
+  { icon: TrendingUp, label: 'AI Visualization', path: '/admin/data-visualization', badge: '📊 NEW' },
+  { icon: BarChart3, label: 'AI Admin', path: '/admin/ai-admin' },
+  { icon: Key, label: 'AI Keys', path: '/admin/ai-keys' },
+  { icon: Rocket, label: 'Deployment', path: '/admin/deployment', badge: '🚀 NEW' },
+  { icon: CreditCard, label: 'My Subscription', path: '/admin/subscription', badge: '💳 NEW' },
+  { icon: DollarSign, label: 'Pricing', path: '/admin/pricing' },
 ];
 
 interface SidebarProps {

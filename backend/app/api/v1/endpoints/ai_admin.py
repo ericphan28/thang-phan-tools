@@ -483,6 +483,7 @@ async def get_recent_usage(
                 "processing_time_ms": log.processing_time_ms,
                 "status": log.status,
                 "error": log.error_message,
+                "request_metadata": log.request_metadata if log.request_metadata else {},
                 "created_at": log.created_at.isoformat()
             }
             for log in logs
@@ -558,4 +559,47 @@ async def get_admin_dashboard(db: Session = Depends(get_db)):
             {"model": m, "requests": r, "cost_usd": round(c or 0, 4)}
             for m, r, c in top_models
         ]
+    }
+
+
+@router.get("/providers/live-status")
+async def get_providers_live_status(db: Session = Depends(get_db)):
+    """
+    Get real-time balance and limits from AI providers
+    
+    This fetches actual balance, credits, and rate limits from provider APIs
+    (not just our database tracking)
+    
+    For Gemini: Shows remaining daily quota based on actual usage
+    """
+    from app.models.models import AIProviderKey
+    from app.services.provider_balance_service import ProviderBalanceService
+    
+    # Get primary API keys
+    keys = db.query(AIProviderKey).filter(
+        AIProviderKey.is_active == True,
+        AIProviderKey.is_primary == True
+    ).all()
+    
+    # Prepare API key config
+    api_keys_config = {}
+    for key in keys:
+        if key.provider == "claude":
+            api_keys_config["claude"] = {"api_key": key.api_key}
+        elif key.provider == "gemini":
+            api_keys_config["gemini"] = {"api_key": key.api_key}
+        elif key.provider == "adobe":
+            api_keys_config["adobe"] = {
+                "client_id": key.client_id or key.api_key,
+                "client_secret": key.client_secret
+            }
+    
+    # Fetch live data from providers (pass db session for Gemini quota tracking)
+    live_data = await ProviderBalanceService.get_all_balances(api_keys_config, db)
+    
+    return {
+        "success": True,
+        "providers": live_data,
+        "fetched_at": datetime.utcnow().isoformat(),
+        "note": "Real-time data from provider APIs + database usage tracking"
     }
