@@ -3,11 +3,6 @@ name: Build & Push Images (GHCR)
 on:
   push:
     branches: ["main"]
-    paths:
-      - "backend/**"
-      - "frontend/**"
-      - "docker-compose*.yml"
-      - ".github/workflows/backend-image-ghcr.yml"
   workflow_dispatch:
 
 permissions:
