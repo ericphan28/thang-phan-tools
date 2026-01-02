@@ -12,15 +12,34 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_DIR="/opt/utility-server"
 COMPOSE_FILE="docker-compose.prod.yml"
-SERVICES=("backend" "frontend")
+# Get services to deploy from env var, default to all
+DEPLOY_SERVICES=${DEPLOY_SERVICES:-"backend frontend"}
 
 cd $PROJECT_DIR
 
-echo -e "${YELLOW}📦 Pulling latest images...${NC}"
-docker-compose -f $COMPOSE_FILE pull
+echo -e "${YELLOW}📦 Pulling latest images for: $DEPLOY_SERVICES${NC}"
+MAX_RETRIES=3
+RETRY_COUNT=0
 
-echo -e "${YELLOW}🔄 Restarting services...${NC}"
-docker-compose -f $COMPOSE_FILE up -d --force-recreate
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES..."
+    if docker-compose -f $COMPOSE_FILE pull --no-parallel $DEPLOY_SERVICES; then
+        echo -e "${GREEN}✅ Pull successful!${NC}"
+        break
+    else
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+            echo -e "${YELLOW}⚠️  Pull failed, retrying in 10s...${NC}"
+            sleep 10
+        else
+            echo -e "${RED}❌ Pull failed after $MAX_RETRIES attempts${NC}"
+            exit 1
+        fi
+    fi
+done
+
+echo -e "${YELLOW}🔄 Restarting services: $DEPLOY_SERVICES${NC}"
+docker-compose -f $COMPOSE_FILE up -d --force-recreate $DEPLOY_SERVICES
 
 echo -e "${YELLOW}⏳ Waiting 15s for services to start...${NC}"
 sleep 15
