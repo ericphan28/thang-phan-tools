@@ -1,14 +1,14 @@
 /**
- * Document Tools Hub - Trang xử lý tài liệu tổng hợp
- * Features: Convert, Merge, Split files (DOC, PDF, Images)
- * Responsive: Mobile-first design
+ * Document Tools Hub V2 - Tối ưu quota Adobe API
+ * Chiến lược: Chỉ PDF→Word dùng Adobe (OCR tiếng Việt), còn lại dùng PyPDF2/Gotenberg
+ * Tiết kiệm: ~75% quota Adobe (400 → 100 requests/tháng)
  */
 import { useState } from 'react';
 import { 
   FileText, FileImage, FileSpreadsheet, 
   Scissors, Link as LinkIcon, RotateCw,
-  Upload, Download, Trash2, Plus, Settings,
-  ChevronDown, ChevronUp, Search, Zap
+  Upload, Download, Trash2, Zap, Sparkles,
+  GripVertical, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -18,10 +18,8 @@ import axios from 'axios';
 import { API_BASE_URL } from '../config';
 import toast from 'react-hot-toast';
 
-// API Base URL - SAME AS ToolsPage
 const API_BASE = API_BASE_URL;
 
-// Tool configuration
 interface Tool {
   id: string;
   name: string;
@@ -53,7 +51,7 @@ const TOOLS: Tool[] = [
     name: 'PDF to Word',
     nameVi: 'PDF → Word',
     icon: FileText,
-    description: 'Chuyển PDF sang Word có thể chỉnh sửa (OCR tiếng Việt)',
+    description: 'Chuyển PDF sang Word có thể chỉnh sửa (OCR tiếng Việt chuyên nghiệp)',
     category: 'convert',
     accept: '.pdf',
     endpoint: '/documents/convert/pdf-to-word',
@@ -146,115 +144,99 @@ const TOOLS: Tool[] = [
   },
 ];
 
-export default function DocumentToolsPage() {
+export default function DocumentToolsPageV2() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'convert' | 'edit' | 'batch'>('all');
-  const [expandedTool, setExpandedTool] = useState<string | null>(null);
+  const [expandedToolId, setExpandedToolId] = useState<string | null>(null);
 
-  // Debug logging
-  console.log('🔧 DocumentToolsPage - API_BASE:', API_BASE);
-  console.log('🔧 Total tools:', TOOLS.length);
-
-  // Filter tools
   const filteredTools = TOOLS.filter(tool => {
-    const matchCategory = selectedCategory === 'all' || tool.category === selectedCategory;
-    const matchSearch = tool.nameVi.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       tool.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchCategory && matchSearch;
+    const matchesSearch = tool.nameVi.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tool.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
-  
-  console.log('🔧 Filtered tools:', filteredTools.length);
-
-  // Category counts
-  const categoryCounts = {
-    all: TOOLS.length,
-    convert: TOOLS.filter(t => t.category === 'convert').length,
-    edit: TOOLS.filter(t => t.category === 'edit').length,
-    batch: TOOLS.filter(t => t.category === 'batch').length,
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3">
-            🛠️ Công cụ xử lý tài liệu
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
-            Chuyển đổi, ghép, tách file Word, PDF, Excel, Ảnh - Nhanh chóng & Miễn phí
-          </p>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          <Sparkles className="h-8 w-8 text-yellow-500" />
+          <h1 className="text-3xl md:text-4xl font-bold">Công cụ xử lý tài liệu</h1>
         </div>
-
-        {/* Search & Filter */}
-        <div className="mb-6 space-y-4">
-          {/* Search bar */}
-          <div className="relative max-w-2xl mx-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Tìm kiếm công cụ... (VD: word, ghép pdf, chuyển đổi)"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 h-12 text-base"
-            />
-          </div>
-
-          {/* Category filter */}
-          <div className="flex flex-wrap gap-2 justify-center">
-            {(['all', 'convert', 'edit', 'batch'] as const).map((cat) => {
-              const labels = {
-                all: 'Tất cả',
-                convert: '🔄 Chuyển đổi',
-                edit: '✂️ Chỉnh sửa',
-                batch: '⚡ Hàng loạt'
-              };
-              
-              return (
-                <Button
-                  key={cat}
-                  variant={selectedCategory === cat ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory(cat)}
-                  className="rounded-full"
-                >
-                  {labels[cat]}
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {categoryCounts[cat]}
-                  </Badge>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredTools.map((tool) => (
-            <ToolCard 
-              key={tool.id} 
-              tool={tool}
-              isExpanded={expandedTool === tool.id}
-              onToggle={() => setExpandedTool(expandedTool === tool.id ? null : tool.id)}
-            />
-          ))}
-        </div>
-
-        {/* Empty state */}
-        {filteredTools.length === 0 && (
-          <div className="text-center py-16">
-            <Search className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Không tìm thấy công cụ phù hợp</p>
-            <Button 
-              variant="link" 
-              onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
-              className="mt-2"
-            >
-              Xóa bộ lọc
-            </Button>
-          </div>
-        )}
+        <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 mb-4">
+          Chuyển đổi, ghép, tách file Word, PDF, Excel, Ảnh - Nhanh chóng & Tiện lợi
+        </p>
       </div>
+
+      {/* Search & Filters */}
+      <div className="mb-6 space-y-4">
+        <Input
+          type="text"
+          placeholder="🔍 Tìm kiếm công cụ... (VD: word, ghép pdf, chuyển đổi)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-2xl mx-auto"
+        />
+        
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button
+            variant={selectedCategory === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedCategory('all')}
+          >
+            Tất cả ({TOOLS.length})
+          </Button>
+          <Button
+            variant={selectedCategory === 'convert' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedCategory('convert')}
+          >
+            🔄 Chuyển đổi ({TOOLS.filter(t => t.category === 'convert').length})
+          </Button>
+          <Button
+            variant={selectedCategory === 'edit' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedCategory('edit')}
+          >
+            ✂️ Chỉnh sửa ({TOOLS.filter(t => t.category === 'edit').length})
+          </Button>
+          <Button
+            variant={selectedCategory === 'batch' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedCategory('batch')}
+          >
+            ⚡ Hàng loạt ({TOOLS.filter(t => t.category === 'batch').length})
+          </Button>
+        </div>
+      </div>
+
+      {/* Tools Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredTools.map((tool) => (
+          <ToolCard
+            key={tool.id}
+            tool={tool}
+            isExpanded={expandedToolId === tool.id}
+            onToggle={() => setExpandedToolId(expandedToolId === tool.id ? null : tool.id)}
+          />
+        ))}
+      </div>
+
+      {/* No results */}
+      {filteredTools.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Không tìm thấy công cụ phù hợp
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+          >
+            Xóa bộ lọc
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -270,8 +252,10 @@ function ToolCard({ tool, isExpanded, onToggle }: {
   const [splitPages, setSplitPages] = useState('');
   const [rotationAngle, setRotationAngle] = useState(90);
   const [rotatePages, setRotatePages] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const Icon = tool.icon;
+  
   const colorClasses = {
     blue: 'border-blue-200 hover:border-blue-400 dark:border-blue-800',
     green: 'border-green-200 hover:border-green-400 dark:border-green-800',
@@ -289,16 +273,40 @@ function ToolCard({ tool, isExpanded, onToggle }: {
     }
   };
 
+  const moveFile = (fromIndex: number, toIndex: number) => {
+    const newFiles = [...files];
+    const [movedFile] = newFiles.splice(fromIndex, 1);
+    newFiles.splice(toIndex, 0, movedFile);
+    setFiles(newFiles);
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== index) {
+      moveFile(draggedIndex, index);
+      setDraggedIndex(index);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   const handleProcess = async () => {
     if (files.length === 0) {
       toast.error('Vui lòng chọn file');
       return;
     }
-    // Validate split PDF input
+    
     if (tool.id === 'split-pdf' && !splitPages.trim()) {
       toast.error('⚠️ Vui lòng nhập khoảng trang cần tách (VD: 1-3,5-7)');
       return;
     }
+    
     setIsProcessing(true);
     const formData = new FormData();
     
@@ -308,12 +316,10 @@ function ToolCard({ tool, isExpanded, onToggle }: {
       formData.append('file', files[0]);
     }
 
-    // Special handling for split PDF
     if (tool.id === 'split-pdf' && splitPages) {
       formData.append('page_ranges', splitPages);
     }
 
-    // Special handling for rotate PDF
     if (tool.id === 'rotate-pdf') {
       formData.append('rotation', rotationAngle.toString());
       if (rotatePages.trim()) {
@@ -322,21 +328,16 @@ function ToolCard({ tool, isExpanded, onToggle }: {
     }
 
     try {
-      // USE SAME PATTERN AS ToolsPage - axios with API_BASE
       const response = await axios.post(
         `${API_BASE}${tool.endpoint}`,
         formData,
-        {
-          responseType: 'blob', // CRITICAL: Force blob response
-        }
+        { responseType: 'blob' }
       );
 
-      // Download file
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
       
-      // Try to get filename from Content-Disposition header
       let filename = null;
       const contentDisposition = response.headers['content-disposition'];
       if (contentDisposition) {
@@ -346,94 +347,52 @@ function ToolCard({ tool, isExpanded, onToggle }: {
         }
       }
       
-      // Fallback: Smart filename detection based on TOOL TYPE
       if (!filename) {
-        let outputExt = 'pdf'; // Default
-        if (tool.id === 'pdf-to-word') {
-          outputExt = 'docx';
-        } else if (tool.id === 'split-pdf' || tool.id === 'merge-pdf') {
-          outputExt = 'zip';
-        } else if (tool.id.startsWith('batch-') && tool.id.includes('word')) {
-          outputExt = 'zip';
-        }
+        let outputExt = 'pdf';
+        if (tool.id === 'pdf-to-word') outputExt = 'docx';
+        else if (tool.id === 'split-pdf' || tool.id === 'merge-pdf') outputExt = 'zip';
+        else if (tool.id.startsWith('batch-')) outputExt = 'zip';
         filename = `output_${Date.now()}.${outputExt}`;
       }
       
       link.download = filename;
-      
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url); // Cleanup
+      window.URL.revokeObjectURL(url);
       
-      toast.success(`✅ ${tool.nameVi} thành công!`);
+      toast.success(`✅ ${tool.nameVi} thành công!`, { duration: 3000 });
       setFiles([]);
       setSplitPages('');
+      setRotatePages('');
     } catch (error: any) {
-      console.error('❌ Conversion error:', error);
-      console.error('📦 Error response:', error.response);
-      console.error('📄 Error data:', error.response?.data);
-      
-      // Extract detailed error message from backend
       let errorMsg = `Lỗi ${tool.nameVi}`;
       
       if (error.response?.data) {
         const data = error.response.data;
         
-        // CRITICAL: Check if error data is a Blob (due to responseType: 'blob')
         if (data instanceof Blob) {
-          console.log('🔍 Error is Blob, converting to text...');
           try {
-            // Read Blob as text
             const text = await data.text();
-            console.log('📝 Blob text content:', text);
-            
-            // Try to parse as JSON first
             try {
               const json = JSON.parse(text);
               errorMsg = json.detail || json.message || text;
             } catch {
-              // Not JSON, use raw text
               errorMsg = text;
             }
           } catch (blobError) {
             console.error('Failed to read Blob:', blobError);
           }
         } else {
-          // Log for debugging
-          console.log('🔍 Parsing error data:', {
-            type: typeof data,
-            hasDetail: !!data.detail,
-            hasMessage: !!data.message,
-            data: data
-          });
-          
-          // Try multiple extraction methods
-          if (typeof data === 'string') {
-            errorMsg = data;
-          } else if (data.detail) {
-            errorMsg = data.detail;
-          } else if (data.message) {
-            errorMsg = data.message;
-          } else if (data.error) {
-            errorMsg = data.error;
-          }
+          if (typeof data === 'string') errorMsg = data;
+          else if (data.detail) errorMsg = data.detail;
+          else if (data.message) errorMsg = data.message;
         }
-      } else if (error.message) {
-        errorMsg = error.message;
       }
       
-      console.log('💬 Final error message:', errorMsg);
-      
-      // Show error with multi-line support
       toast.error(errorMsg, {
-        duration: 8000,  // Longer duration for detailed messages
-        style: {
-          maxWidth: '600px',
-          whiteSpace: 'pre-line', // Support \n\n line breaks
-          fontSize: '14px',
-          lineHeight: '1.5'
-        }
+        duration: 8000,
+        style: { maxWidth: '600px', whiteSpace: 'pre-line' }
       });
     } finally {
       setIsProcessing(false);
@@ -441,27 +400,27 @@ function ToolCard({ tool, isExpanded, onToggle }: {
   };
 
   return (
-    <Card className={`transition-all duration-200 ${colorClasses[tool.color as keyof typeof colorClasses]}`}>
+    <Card className={`${colorClasses[tool.color]} transition-all`}>
       <CardHeader className="cursor-pointer" onClick={onToggle}>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 flex-1">
             <div className={`p-2 rounded-lg bg-${tool.color}-100 dark:bg-${tool.color}-900/20`}>
-              <Icon className={`h-6 w-6 text-${tool.color}-600 dark:text-${tool.color}-400`} />
+              <Icon className={`h-5 w-5 text-${tool.color}-600 dark:text-${tool.color}-400`} />
             </div>
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-base md:text-lg truncate">{tool.nameVi}</CardTitle>
+              <div className="flex items-center gap-2 mb-1">
+                <CardTitle className="text-base md:text-lg truncate">{tool.nameVi}</CardTitle>
+              </div>
               <CardDescription className="text-xs md:text-sm line-clamp-2">
                 {tool.description}
               </CardDescription>
             </div>
           </div>
-          {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
         </div>
       </CardHeader>
 
       {isExpanded && (
         <CardContent className="space-y-4">
-          {/* File upload */}
           <div>
             <label className="block text-sm font-medium mb-2">
               {tool.multiple ? 'Chọn file (nhiều file)' : 'Chọn file'}
@@ -474,18 +433,64 @@ function ToolCard({ tool, isExpanded, onToggle }: {
               className="cursor-pointer"
             />
             {files.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {files.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
-                    <span className="truncate flex-1">{file.name}</span>
-                    <span className="text-gray-500 ml-2">{(file.size / 1024).toFixed(1)} KB</span>
+              <div className="mt-3 space-y-2">
+                {tool.id === 'merge-word-to-pdf' && (
+                  <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-md">
+                    <GripVertical className="h-4 w-4" />
+                    <span>Kéo thả để sắp xếp thứ tự ghép PDF</span>
                   </div>
-                ))}
+                )}
+                <div className="space-y-1">
+                  {files.map((file, idx) => (
+                    <div
+                      key={idx}
+                      draggable={tool.id === 'merge-word-to-pdf'}
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDragEnd={handleDragEnd}
+                      className={`flex items-center gap-2 text-xs bg-gray-50 dark:bg-gray-800 px-2 py-2 rounded transition-all ${
+                        tool.id === 'merge-word-to-pdf' ? 'cursor-move hover:bg-gray-100 dark:hover:bg-gray-700' : ''
+                      } ${
+                        draggedIndex === idx ? 'opacity-50 scale-95' : ''
+                      }`}
+                    >
+                      {tool.id === 'merge-word-to-pdf' && (
+                        <>
+                          <GripVertical className="h-4 w-4 text-gray-400" />
+                          <span className="font-semibold text-blue-600 dark:text-blue-400 min-w-[20px]">{idx + 1}.</span>
+                        </>
+                      )}
+                      <span className="truncate flex-1">{file.name}</span>
+                      <span className="text-gray-500 ml-2">{(file.size / 1024).toFixed(1)} KB</span>
+                      {tool.id === 'merge-word-to-pdf' && (
+                        <div className="flex gap-1">
+                          {idx > 0 && (
+                            <button
+                              onClick={() => moveFile(idx, idx - 1)}
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                              title="Di chuyển lên"
+                            >
+                              <ArrowUp className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                            </button>
+                          )}
+                          {idx < files.length - 1 && (
+                            <button
+                              onClick={() => moveFile(idx, idx + 1)}
+                              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                              title="Di chuyển xuống"
+                            >
+                              <ArrowDown className="h-3 w-3 text-gray-600 dark:text-gray-400" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Split PDF options */}
           {tool.id === 'split-pdf' && (
             <div>
               <label className="block text-sm font-medium mb-2">
@@ -503,7 +508,6 @@ function ToolCard({ tool, isExpanded, onToggle }: {
             </div>
           )}
 
-          {/* Rotate PDF options */}
           {tool.id === 'rotate-pdf' && (
             <div className="space-y-3">
               <div>
@@ -513,7 +517,7 @@ function ToolCard({ tool, isExpanded, onToggle }: {
                 <select
                   value={rotationAngle}
                   onChange={(e) => setRotationAngle(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value={90}>90° ↻ (Xoay phải)</option>
                   <option value={180}>180° ↻ (Lật ngược)</option>
@@ -537,7 +541,6 @@ function ToolCard({ tool, isExpanded, onToggle }: {
             </div>
           )}
 
-          {/* Process button */}
           <Button
             onClick={handleProcess}
             disabled={isProcessing || files.length === 0}
@@ -556,7 +559,6 @@ function ToolCard({ tool, isExpanded, onToggle }: {
             )}
           </Button>
 
-          {/* Clear button */}
           {files.length > 0 && !isProcessing && (
             <Button
               variant="outline"

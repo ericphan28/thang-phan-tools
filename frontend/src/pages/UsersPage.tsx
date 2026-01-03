@@ -10,23 +10,69 @@ import EmptyState from '../components/ui/empty-state';
 import UserModal from '../components/modals/UserModal';
 import ConfirmDialog from '../components/modals/ConfirmDialog';
 import { formatApiError } from '../lib/error-utils';
-import { Plus, Search, Edit, Trash2, CheckCircle, XCircle, Users as UsersIcon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, CheckCircle, XCircle, Users as UsersIcon, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import type { User, UserCreate } from '../types';
+
+type SortField = 'username' | 'email' | 'created_at';
+type SortOrder = 'asc' | 'desc';
 
 export default function UsersPage() {
   const [search, setSearch] = useState('');
+  const [emailSearch, setEmailSearch] = useState('');
   const [page, setPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   const queryClient = useQueryClient();
 
-  // Fetch users
+  // Fetch users with sorting
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['users', { search, page }],
+    queryKey: ['users', { search, emailSearch, page, sortField, sortOrder }],
     queryFn: () => userService.getUsers({ search, page, page_size: 10 }),
   });
+
+  // Client-side filtering and sorting (since backend may not support all params)
+  const filteredAndSortedUsers = usersData?.users
+    ? usersData.users
+        .filter(user => 
+          !emailSearch || user.email.toLowerCase().includes(emailSearch.toLowerCase())
+        )
+        .sort((a, b) => {
+          let aVal: any = a[sortField];
+          let bVal: any = b[sortField];
+          
+          if (sortField === 'created_at') {
+            aVal = new Date(aVal).getTime();
+            bVal = new Date(bVal).getTime();
+          } else {
+            aVal = (aVal || '').toString().toLowerCase();
+            bVal = (bVal || '').toString().toLowerCase();
+          }
+          
+          if (sortOrder === 'asc') {
+            return aVal > bVal ? 1 : -1;
+          } else {
+            return aVal < bVal ? 1 : -1;
+          }
+        })
+    : [];
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-50" />;
+    return sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
 
   // Fetch roles
   const { data: roles, isLoading: rolesLoading, error: rolesError } = useQuery({
@@ -130,16 +176,25 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm theo tên đăng nhập, email hoặc họ tên..."
+                placeholder="Tìm theo tên đăng nhập, họ tên..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo email..."
+                value={emailSearch}
+                onChange={(e) => setEmailSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -165,8 +220,18 @@ export default function UsersPage() {
             <div className="space-y-4">
               {/* Table Header - Hidden on mobile */}
               <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-2 bg-muted rounded-lg text-sm font-medium">
-                <div className="col-span-3">Tên đăng nhập</div>
-                <div className="col-span-3">Email</div>
+                <button 
+                  onClick={() => handleSort('username')}
+                  className="col-span-3 flex items-center gap-1 hover:text-primary transition-colors text-left"
+                >
+                  Tên đăng nhập <SortIcon field="username" />
+                </button>
+                <button 
+                  onClick={() => handleSort('email')}
+                  className="col-span-3 flex items-center gap-1 hover:text-primary transition-colors text-left"
+                >
+                  Email <SortIcon field="email" />
+                </button>
                 <div className="col-span-2">Vai trò</div>
                 <div className="col-span-1">Trạng thái</div>
                 <div className="col-span-1">Loại</div>
@@ -174,7 +239,7 @@ export default function UsersPage() {
               </div>
 
               {/* Table Rows */}
-              {usersData?.users.map((user) => (
+              {filteredAndSortedUsers.map((user) => (
                 <div
                   key={user.id}
                   className="md:grid md:grid-cols-12 gap-4 px-4 py-3 border rounded-lg md:items-center hover:bg-accent/50 transition-colors space-y-3 md:space-y-0"
@@ -254,17 +319,17 @@ export default function UsersPage() {
           )}
 
           {/* Empty State */}
-          {!isLoading && usersData?.users.length === 0 && (
+          {!isLoading && filteredAndSortedUsers.length === 0 && (
             <EmptyState
               icon={UsersIcon}
               title="Không tìm thấy người dùng"
               description={
-                search
-                  ? `Không có kết quả phù hợp với "${search}". Thử tìm kiếm với từ khóa khác.`
+                search || emailSearch
+                  ? `Không có kết quả phù hợp với tìm kiếm. Thử với từ khóa khác.`
                   : "Chưa có người dùng nào trong hệ thống. Hãy thêm người dùng đầu tiên."
               }
               action={
-                !search
+                !search && !emailSearch
                   ? {
                       label: "Thêm người dùng đầu tiên",
                       onClick: () => setIsCreateModalOpen(true),

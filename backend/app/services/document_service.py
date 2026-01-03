@@ -248,13 +248,19 @@ def get_friendly_error_message(error: Exception) -> tuple[int, str]:
                      "• Sau đó 'Save As' thành file mới không có password\n"
                      "• Hoặc dùng tính năng 'Unlock PDF' của chúng tôi")
     
-    # Digitally signed files
+    # Digitally signed files (will trigger PyPDF2 fallback)
     if "pdf_signed" in error_msg or "signed" in error_msg:
-        return (400, "😔 Rất tiếc! File PDF này có chữ ký điện tử.\n\n"
-                     "💡 Giải pháp:\n"
-                     "• Adobe API không xử lý được file có chữ ký số\n"
-                     "• Vui lòng remove signature trước\n"
+        return (400, "😔 File PDF này có chữ ký điện tử (Adobe không hỗ trợ).\n\n"
+                     "💡 Hệ thống sẽ tự động thử phương pháp khác...\n"
+                     "• Hoặc vui lòng remove signature trước\n"
                      "• Hoặc dùng bản PDF gốc chưa ký")
+    
+    # Invalid page range errors (will trigger PyPDF2 fallback)
+    if "invalid_page_range" in error_msg or "invalid range" in error_msg or "page range specified is invalid" in error_msg:
+        return (400, "😔 Khoảng trang không hợp lệ (Adobe không hỗ trợ).\n\n"
+                     "💡 Hệ thống sẽ tự động thử phương pháp khác...\n"
+                     "• Kiểm tra số trang trong PDF\n"
+                     "• Đảm bảo ranges hợp lệ (VD: 1-3,5-7)")
     
     # Corrupted or invalid files
     if "corrupted" in error_msg or "invalid" in error_msg or "malformed" in error_msg:
@@ -2433,6 +2439,65 @@ Bắt đầu trích xuất:
         except Exception as e:
             raise HTTPException(500, f"Image to PDF conversion failed: {str(e)}")
     
+    async def images_to_pdf(
+        self,
+        input_files: List[Path],
+        output_filename: Optional[str] = None
+    ) -> Path:
+        """
+        Convert multiple images to a single PDF (each image = 1 page)
+        
+        Args:
+            input_files: List of image file paths
+            output_filename: Optional output filename
+            
+        Returns:
+            Path to combined PDF
+        """
+        if not input_files:
+            raise HTTPException(400, "No images provided")
+        
+        output_filename = output_filename or f"images_combined_{len(input_files)}_pages.pdf"
+        output_path = self.output_dir / output_filename
+        
+        try:
+            from PIL import Image
+            
+            # Convert all images to RGB PIL Images
+            rgb_images = []
+            for img_path in input_files:
+                img = Image.open(img_path)
+                
+                # Convert to RGB
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    background = Image.new('RGB', img.size, (255, 255, 255))
+                    if img.mode == 'P':
+                        img = img.convert('RGBA')
+                    background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    img = background
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                rgb_images.append(img)
+            
+            # Save first image as PDF, append others as pages
+            if len(rgb_images) == 1:
+                rgb_images[0].save(output_path, 'PDF', resolution=100.0, quality=95)
+            else:
+                rgb_images[0].save(
+                    output_path, 
+                    'PDF', 
+                    resolution=100.0, 
+                    quality=95,
+                    save_all=True,
+                    append_images=rgb_images[1:]
+                )
+            
+            return output_path
+            
+        except Exception as e:
+            raise HTTPException(500, f"Images to PDF conversion failed: {str(e)}")
+    
     # ==================== PDF Watermark ====================
     
     async def add_watermark_to_pdf(
@@ -3540,16 +3605,29 @@ Bắt đầu trích xuất:
             # Parse page ranges - Adobe API expects ONE PageRanges object with multiple ranges
             page_ranges_obj = PageRanges()
             for range_str in page_ranges:
+                # Clean whitespace
+                range_str = range_str.strip().replace(' ', '')
+                
                 if '-' in range_str:
-                    start, end = range_str.split('-')
-                    page_ranges_obj.add_range(int(start), int(end))
+                    parts = range_str.split('-')
+                    if len(parts) != 2:
+                        raise HTTPException(400, f"Invalid range format: {range_str}. Use 1-3, not 1-2-3")
+                    start, end = int(parts[0]), int(parts[1])
+                    if start > end:
+                        raise HTTPException(400, f"Invalid range: {range_str}. Start must be <= end")
+                    page_ranges_obj.add_range(start, end)
                 else:
                     # Single page
                     page = int(range_str)
+                    if page < 1:
+                        raise HTTPException(400, f"Invalid page number: {page}. Must be >= 1")
                     page_ranges_obj.add_single_page(page)
             
             # Create split params - pass single PageRanges object
             split_params = SplitPDFParams(page_ranges=page_ranges_obj)
+            
+            # Log ranges before sending to Adobe
+            logger.info(f"📤 Sending to Adobe: {len(page_ranges)} ranges")
             
             # Create and submit job
             split_job = SplitPDFJob(input_asset=input_asset, split_pdf_params=split_params)
@@ -3588,6 +3666,58 @@ Bắt đầu trích xuất:
             logger.error(f"Adobe Split error: {e}")
             status_code, friendly_msg = get_friendly_error_message(e)
             raise HTTPException(status_code, friendly_msg)
+    
+    async def split_pdf_pypdf(self, pdf_path: Path, page_ranges: List[str]) -> List[Path]:
+        """
+        Tách PDF bằng PyPDF2 (fallback khi Adobe fail với PDF signed)
+        
+        Args:
+            pdf_path: File PDF gốc
+            page_ranges: List ranges như ["1-3", "4-6", "7"]
+        
+        Returns:
+            List[Path]: List các file PDF đã tách
+        """
+        try:
+            import pypdf
+            
+            output_paths = []
+            
+            with open(pdf_path, 'rb') as f:
+                pdf_reader = pypdf.PdfReader(f)
+                
+                for idx, range_str in enumerate(page_ranges):
+                    pdf_writer = pypdf.PdfWriter()
+                    
+                    # Parse range string
+                    if '-' in range_str:
+                        start, end = range_str.split('-')
+                        start_page = int(start) - 1  # Convert to 0-indexed
+                        end_page = int(end)  # Inclusive
+                    else:
+                        # Single page
+                        start_page = int(range_str) - 1
+                        end_page = int(range_str)
+                    
+                    # Add pages to writer
+                    for page_num in range(start_page, end_page):
+                        if page_num < len(pdf_reader.pages):
+                            pdf_writer.add_page(pdf_reader.pages[page_num])
+                    
+                    # Save output file
+                    output_path = self.output_dir / f"split_{idx+1}_{pdf_path.name}"
+                    with open(output_path, 'wb') as output_file:
+                        pdf_writer.write(output_file)
+                    
+                    output_paths.append(output_path)
+                    logger.info(f"💾 PyPDF2 split file {idx+1}: {output_path.name} ({output_path.stat().st_size} bytes)")
+            
+            logger.info(f"✅ PyPDF2 Split successful: {len(output_paths)} files created")
+            return output_paths
+            
+        except Exception as e:
+            logger.error(f"PyPDF2 Split error: {e}")
+            raise HTTPException(500, f"😔 Không thể tách PDF: {str(e)}")
     
     # ==================== PDF Protect (Adobe) ====================
     

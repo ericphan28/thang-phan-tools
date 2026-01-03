@@ -1122,10 +1122,10 @@ async def compress_pdf(
 
 @router.post("/convert/image-to-pdf")
 async def image_to_pdf(
-    file: UploadFile = File(..., description="Image file (JPG, PNG, etc.)"),
+    files: List[UploadFile] = File(..., description="Image files (JPG, PNG, etc.)"),
 ):
     """
-    Convert image to PDF
+    Convert multiple images to PDF (combined into one PDF)
     
     Supported formats: JPG, JPEG, PNG, GIF, BMP, WebP, HEIC
     
@@ -1133,20 +1133,36 @@ async def image_to_pdf(
     - Converts to RGB color space
     - Maintains original resolution
     - High quality output (95%)
+    - Multiple images → Pages in single PDF
     """
-    input_path = await doc_service.save_upload_file(file)
+    if not files:
+        raise HTTPException(400, "No files uploaded")
     
+    input_paths = []
     try:
-        output_path = await doc_service.image_to_pdf(input_path)
+        # Save all uploaded files
+        for file in files:
+            input_path = await doc_service.save_upload_file(file)
+            input_paths.append(input_path)
+        
+        # Convert all images to one PDF
+        if len(input_paths) == 1:
+            # Single image
+            output_path = await doc_service.image_to_pdf(input_paths[0])
+        else:
+            # Multiple images → combine into one PDF
+            output_path = await doc_service.images_to_pdf(input_paths)
         
         return FileResponse(
             output_path,
             media_type="application/pdf",
-            filename=output_path.name
+            filename=f"images_to_pdf_{len(files)}_pages.pdf"
         )
         
     finally:
-        await doc_service.cleanup_file(input_path)
+        # Cleanup all input files
+        for path in input_paths:
+            await doc_service.cleanup_file(path)
 
 
 # OLD TEXT WATERMARK - Moved to /pdf/watermark-text to avoid conflict
@@ -1865,57 +1881,69 @@ async def merge_word_files_to_pdf(
     errors = []
     
     try:
-        print(f"[Merge Word→PDF] Starting merge of {len(files)} Word files")
+        logger.info(f"🔄 [Merge Word→PDF] Starting merge of {len(files)} Word files")
+        logger.info(f"📁 Files: {[f.filename for f in files]}")
         
         # Step 1: Convert each Word to PDF
         for idx, file in enumerate(files, 1):
             try:
-                print(f"[Merge Word→PDF] Converting file {idx}/{len(files)}: {file.filename}")
+                logger.info(f"📝 [{idx}/{len(files)}] Converting: {file.filename}")
                 input_path = await doc_service.save_upload_file(file)
+                logger.info(f"💾 Saved to: {input_path}")
+                
                 pdf_path = await doc_service.word_to_pdf(input_path)
+                logger.info(f"✅ Converted to PDF: {pdf_path}")
+                
                 temp_pdf_files.append(pdf_path)
                 await doc_service.cleanup_file(input_path)
-                print(f"[Merge Word→PDF] ✓ Converted: {file.filename} → {pdf_path.name}")
+                logger.info(f"🗑️ Cleaned up input file: {input_path}")
             except Exception as e:
                 error_msg = str(e)
-                print(f"[Merge Word→PDF] ✗ Error converting {file.filename}: {error_msg}")
+                logger.error(f"❌ Error converting {file.filename}: {error_msg}", exc_info=True)
                 errors.append({"file": file.filename, "error": error_msg})
         
         if not temp_pdf_files:
-            raise HTTPException(500, f"All conversions failed. Errors: {errors}")
+            error_details = "\n".join([f"- {e['file']}: {e['error']}" for e in errors])
+            raise HTTPException(500, f"All conversions failed:\n{error_details}")
         
         if len(temp_pdf_files) < len(files):
-            print(f"[Merge Word→PDF] ⚠ Warning: Only {len(temp_pdf_files)}/{len(files)} files converted successfully")
+            logger.warning(f"⚠️ Only {len(temp_pdf_files)}/{len(files)} files converted successfully")
         
         # Step 2: Merge all PDFs into one
-        print(f"[Merge Word→PDF] Merging {len(temp_pdf_files)} PDF files...")
+        logger.info(f"🔗 Merging {len(temp_pdf_files)} PDF files...")
         
-        from pypdf import PdfMerger
+        import pypdf
         
-        merger = PdfMerger()
+        merger = pypdf.PdfWriter()
         for pdf_path in temp_pdf_files:
             if pdf_path.exists():
-                merger.append(str(pdf_path))
+                logger.info(f"➕ Adding to merge: {pdf_path.name}")
+                with open(pdf_path, 'rb') as f:
+                    pdf_reader = pypdf.PdfReader(f)
+                    for page in pdf_reader.pages:
+                        merger.add_page(page)
             else:
-                print(f"[Merge Word→PDF] ⚠ Warning: PDF not found: {pdf_path}")
+                logger.warning(f"⚠️ PDF not found: {pdf_path}")
         
         # Save merged PDF
         output_path = doc_service.output_dir / f"merged_{len(temp_pdf_files)}_files.pdf"
-        merger.write(str(output_path))
-        merger.close()
+        logger.info(f"💾 Writing merged PDF to: {output_path}")
         
-        print(f"[Merge Word→PDF] ✓ Merged PDF created: {output_path.name}")
+        with open(output_path, 'wb') as output_file:
+            merger.write(output_file)
+        
+        logger.info(f"✅ Merged PDF created: {output_path.name} ({output_path.stat().st_size} bytes)")
         
         # Cleanup temp PDFs
         for pdf_path in temp_pdf_files:
             try:
                 await doc_service.cleanup_file(pdf_path)
-            except:
-                pass
+            except Exception as cleanup_err:
+                logger.warning(f"⚠️ Failed to cleanup {pdf_path}: {cleanup_err}")
         
         # Return merged PDF
         if errors:
-            print(f"[Merge Word→PDF] ⚠ Completed with {len(errors)} errors: {errors}")
+            logger.warning(f"⚠️ Completed with {len(errors)} errors: {errors}")
         
         return FileResponse(
             path=str(output_path),
@@ -1927,13 +1955,13 @@ async def merge_word_files_to_pdf(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[Merge Word→PDF] ✗ Fatal error: {str(e)}")
+        logger.error(f"❌ Fatal error in merge operation: {str(e)}", exc_info=True)
         # Cleanup temp files
         for pdf_path in temp_pdf_files:
             try:
                 await doc_service.cleanup_file(pdf_path)
-            except:
-                pass
+            except Exception as cleanup_err:
+                logger.warning(f"⚠️ Failed to cleanup {pdf_path}: {cleanup_err}")
         raise HTTPException(500, f"Merge and conversion failed: {str(e)}")
 
 
@@ -2464,23 +2492,66 @@ async def split_pdf(
     page_ranges: str = Form(..., description="Page ranges (comma separated): 1-3,4-6,7-10")
 ):
     """
-    Tách PDF thành nhiều file bằng Adobe PDF Services
-    
+    Tách PDF thành nhiều file bằng PyPDF2 (đơn giản, nhanh, miễn phí)
+
     - Upload file PDF
     - Chỉ định các khoảng trang cần tách
     - Format: "1-3,4-6,7-10" (mỗi khoảng sẽ tạo 1 file riêng)
     - Output: ZIP chứa tất cả các file PDF đã tách
+    - Công nghệ: PyPDF2 (không dùng Adobe API để tiết kiệm quota)
     """
+    # DEBUG: Log received parameters
+    logger.info(f"🔍 Split PDF received: file={file.filename}, page_ranges={page_ranges}")
+    
     pdf_path = await doc_service.save_upload_file(file)
     output_paths = []
     
     try:
-        # Parse page ranges
-        ranges = [r.strip() for r in page_ranges.split(',')]
+        # Parse page ranges - remove ALL whitespace
+        ranges = [r.strip().replace(' ', '') for r in page_ranges.split(',')]
+        logger.info(f"📝 Parsed ranges: {ranges}")
         
-        # Split
-        output_paths = await doc_service.split_pdf(pdf_path, ranges)
-        logger.info(f"🔍 Split returned {len(output_paths)} file paths")
+        # Validate ranges against PDF page count
+        import pypdf
+        try:
+            with open(pdf_path, 'rb') as f:
+                pdf_reader = pypdf.PdfReader(f)
+                total_pages = len(pdf_reader.pages)
+                logger.info(f"📖 PDF has {total_pages} pages")
+                
+                # Validate each range
+                for range_str in ranges:
+                    if '-' in range_str:
+                        start, end = map(int, range_str.split('-'))
+                        if start > total_pages or end > total_pages:
+                            error_msg = (
+                                f"⚠️ Khoảng trang '{range_str}' vượt quá số trang của PDF!\n\n"
+                                f"📖 PDF của bạn chỉ có {total_pages} trang.\n"
+                                f"💡 Vui lòng nhập khoảng trang từ 1 đến {total_pages}.\n\n"
+                                f"Ví dụ hợp lệ: 1-{min(3, total_pages)},{min(2, total_pages)}-{total_pages}"
+                            )
+                            logger.error(f"❌ Validation failed: {error_msg}")
+                            raise HTTPException(status_code=400, detail=error_msg)
+                    else:
+                        page_num = int(range_str)
+                        if page_num > total_pages:
+                            error_msg = (
+                                f"⚠️ Trang {page_num} không tồn tại trong PDF!\n\n"
+                                f"📖 PDF của bạn chỉ có {total_pages} trang.\n"
+                                f"💡 Vui lòng chọn trang từ 1 đến {total_pages}."
+                            )
+                            logger.error(f"❌ Validation failed: {error_msg}")
+                            raise HTTPException(status_code=400, detail=error_msg)
+        except HTTPException:
+            raise  # Re-raise validation errors
+        except Exception as e:
+            logger.warning(f"⚠️ Cannot validate page count: {e}. Continuing...")
+        
+        # Use PyPDF2 for splitting (simple, fast, free)
+        # Adobe API reserved for complex operations like PDF-to-Word conversion
+        output_paths = await doc_service.split_pdf_pypdf(pdf_path, ranges)
+        engine_used = "pypdf2"
+        logger.info(f"✅ PyPDF2 split returned {len(output_paths)} file paths")
         
         # Log each file size BEFORE adding to ZIP
         for idx, output_path in enumerate(output_paths):
@@ -2524,15 +2595,19 @@ async def split_pdf(
         # Encode filename for non-ASCII characters (RFC 2231)
         encoded_filename = encode_filename(f"split_{file.filename}.zip")
         
+        # Set headers based on engine used
+        tech_engine = "Adobe PDF Services" if engine_used == "adobe" else "PyPDF2 (Fallback)"
+        tech_quality = "10/10" if engine_used == "adobe" else "8/10"
+        
         # Return as bytes response
         return Response(
             content=zip_bytes,
             media_type="application/zip",
             headers={
                 "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}",
-                "X-Technology-Engine": "adobe",
-                "X-Technology-Name": "Adobe Split",
-                "X-Technology-Quality": "10/10",
+                "X-Technology-Engine": engine_used,
+                "X-Technology-Name": tech_engine,
+                "X-Technology-Quality": tech_quality,
                 "Content-Length": str(zip_size)
             }
         )

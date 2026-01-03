@@ -1,66 +1,38 @@
-# Check GitHub Actions Workflow Status
+# Live Monitor GitHub Workflow
+param([string]$RunId = "20663984063")
 
-Write-Host ""
-Write-Host "Checking GitHub Actions..." -ForegroundColor Cyan
-Write-Host ""
+$url = "https://api.github.com/repos/ericphan28/thang-phan-tools/actions/runs/$RunId"
 
-try {
-    $response = Invoke-RestMethod -Uri "https://api.github.com/repos/ericphan28/thang-phan-tools/actions/runs?per_page=5"
-    $runs = $response.workflow_runs | Select-Object -First 5
+Write-Host "`nMonitoring workflow $RunId..." -ForegroundColor Cyan
+Write-Host "Press Ctrl+C to stop`n"
 
-    Write-Host "Latest 5 workflow runs:" -ForegroundColor Yellow
-    Write-Host ""
-
-    foreach ($run in $runs) {
-        $status = $run.status
-        $conclusion = $run.conclusion
+$count = 0
+while ($true) {
+    $count++
+    $run = Invoke-RestMethod $url
+    
+    $mins = [math]::Round((New-TimeSpan -Start $run.created_at -End (Get-Date)).TotalMinutes, 1)
+    $time = Get-Date -Format "HH:mm:ss"
+    
+    Write-Host "[$time] Check #$count | Status: $($run.status) | Duration: $mins mins"
+    
+    if ($run.status -eq "completed") {
+        Write-Host "`n========================================" -ForegroundColor $(if($run.conclusion -eq 'success'){'Green'}else{'Red'})
+        Write-Host "WORKFLOW COMPLETED: $($run.conclusion.ToUpper())" -ForegroundColor $(if($run.conclusion -eq 'success'){'Green'}else{'Red'})
+        Write-Host "========================================" -ForegroundColor $(if($run.conclusion -eq 'success'){'Green'}else{'Red'})
         
-        if ($conclusion -eq "success") {
-            $icon = "[SUCCESS]"
-            $color = "Green"
-        } elseif ($conclusion -eq "failure") {
-            $icon = "[FAILED]"
-            $color = "Red"
-        } elseif ($status -eq "in_progress") {
-            $icon = "[RUNNING]"
-            $color = "Yellow"
+        if ($run.conclusion -eq "success") {
+            Write-Host "`nDocker image pushed successfully!" -ForegroundColor Green
+            Write-Host "Image: ghcr.io/ericphan28/thang-phan-tools-backend:latest" -ForegroundColor Cyan
+            Write-Host "`nNext: Deploy to VPS" -ForegroundColor Yellow
+            Write-Host "  docker-compose -f docker-compose.prod.yml pull" -ForegroundColor Gray
+            Write-Host "  docker-compose -f docker-compose.prod.yml up -d`n" -ForegroundColor Gray
         } else {
-            $icon = "[PENDING]"
-            $color = "Gray"
+            Write-Host "`nCheck logs at: $($run.html_url)`n" -ForegroundColor Yellow
         }
-
-        Write-Host "$icon Run #$($run.run_number)" -ForegroundColor White
-        Write-Host "  Status: $status" -ForegroundColor $color
-        if ($conclusion) {
-            Write-Host "  Result: $conclusion" -ForegroundColor $color
-        }
-        Write-Host "  Time: $($run.created_at)"
-        Write-Host "  Commit: $($run.head_commit.message)"
-        Write-Host "  URL: $($run.html_url)"
-        Write-Host ""
-    }
-
-    $runningWorkflows = $runs | Where-Object { $_.status -eq "in_progress" }
-    if ($runningWorkflows) {
-        Write-Host "WORKFLOWS RUNNING: $($runningWorkflows.Count)" -ForegroundColor Yellow
-        Write-Host "Wait 5-10 minutes for build to complete" -ForegroundColor Gray
-    } else {
-        Write-Host "NO WORKFLOWS RUNNING" -ForegroundColor Green
         
-        $latestRun = $runs[0]
-        if ($latestRun.conclusion -eq "success") {
-            Write-Host "Latest workflow: SUCCESS" -ForegroundColor Green
-            Write-Host "Images pushed to GHCR" -ForegroundColor Gray
-        } elseif ($latestRun.conclusion -eq "failure") {
-            Write-Host "Latest workflow: FAILED" -ForegroundColor Red
-            Write-Host "View logs: $($latestRun.html_url)" -ForegroundColor Gray
-        }
+        break
     }
-
-} catch {
-    Write-Host "ERROR calling GitHub API: $_" -ForegroundColor Red
+    
+    Start-Sleep 15
 }
-
-Write-Host ""
-Write-Host "Full details: https://github.com/ericphan28/thang-phan-tools/actions" -ForegroundColor Cyan
-Write-Host ""

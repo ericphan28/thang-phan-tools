@@ -31,7 +31,9 @@ import BillingHistoryPage from './pages/BillingHistoryPage';
 import WorkflowReviewPage from './pages/WorkflowReviewPage';
 import KiemTraTheThuPage from './pages/KiemTraTheThuPage';
 import DocumentToolsPage from './pages/DocumentToolsPage';
+import DocumentToolsPageV2 from './pages/DocumentToolsPageV2';
 import AdobeOnlyTestPage from './pages/AdobeOnlyTestPage';
+import AdobeUsagePage from './pages/AdobeUsagePage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -139,7 +141,7 @@ function App() {
               } />
               <Route path="/user/document-tools" element={
                 <ProtectedRoute>
-                  <DocumentToolsPage />
+                  <DocumentToolsPageV2 />
                 </ProtectedRoute>
               } />
               <Route path="/user/adobe-test" element={
@@ -176,6 +178,7 @@ function App() {
                 <Route path="pricing" element={<PricingPage />} />
                 <Route path="billing" element={<BillingHistoryPage />} />
                 <Route path="adobe-test" element={<AdobeOnlyTestPage />} />
+                <Route path="adobe-usage" element={<AdobeUsagePage />} />
               </Route>
               
               <Route path="*" element={<Navigate to="/" replace />} />
