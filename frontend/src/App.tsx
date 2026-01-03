@@ -34,6 +34,7 @@ import DocumentToolsPage from './pages/DocumentToolsPage';
 import DocumentToolsPageV2 from './pages/DocumentToolsPageV2';
 import AdobeOnlyTestPage from './pages/AdobeOnlyTestPage';
 import AdobeUsagePage from './pages/AdobeUsagePage';
+import UserLayout from './components/layout/UserLayout';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -100,55 +101,25 @@ function App() {
               <Route path="/demo/adobe-test" element={<AdobeOnlyTestPage />} />
               <Route path="/login" element={<LoginPage />} />
               
-              {/* User Routes - Requires authentication */}
+              {/* User Routes - Requires authentication with shared layout */}
               <Route
                 path="/user"
                 element={
                   <ProtectedRoute>
-                    <UserDashboard />
+                    <UserLayout />
                   </ProtectedRoute>
                 }
-              />
-              <Route path="/user/profile" element={
-                <ProtectedRoute>
-                  <UserProfilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/subscription" element={
-                <ProtectedRoute>
-                  <UserSubscriptionPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/pricing" element={
-                <ProtectedRoute>
-                  <PricingPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/billing" element={
-                <ProtectedRoute>
-                  <BillingHistoryPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/ocr-to-word" element={
-                <ProtectedRoute>
-                  <OCRToWordPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/kiem-tra-the-thuc" element={
-                <ProtectedRoute>
-                  <KiemTraTheThuPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/document-tools" element={
-                <ProtectedRoute>
-                  <DocumentToolsPageV2 />
-                </ProtectedRoute>
-              } />
-              <Route path="/user/adobe-test" element={
-                <ProtectedRoute>
-                  <AdobeOnlyTestPage />
-                </ProtectedRoute>
-              } />
+              >
+                <Route index element={<UserDashboard />} />
+                <Route path="profile" element={<UserProfilePage />} />
+                <Route path="subscription" element={<UserSubscriptionPage />} />
+                <Route path="pricing" element={<PricingPage />} />
+                <Route path="billing" element={<BillingHistoryPage />} />
+                <Route path="ocr-to-word" element={<OCRToWordPage />} />
+                <Route path="kiem-tra-the-thuc" element={<KiemTraTheThuPage />} />
+                <Route path="document-tools" element={<DocumentToolsPageV2 />} />
+                <Route path="adobe-test" element={<AdobeOnlyTestPage />} />
+              </Route>
               
               {/* Admin Routes - Requires superuser */}
               <Route

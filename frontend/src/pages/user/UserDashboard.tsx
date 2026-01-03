@@ -1,16 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { subscriptionService } from '../../services/subscription';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { CreditCard, TrendingUp, Zap, ArrowRight, User, LogOut } from 'lucide-react';
+import { CreditCard, TrendingUp, Zap, ArrowRight } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/utils';
-import toast from 'react-hot-toast';
 
 export default function UserDashboard() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: subscription } = useQuery({
     queryKey: ['my-subscription'],
@@ -26,43 +24,21 @@ export default function UserDashboard() {
   const premiumLimit = subscription?.premium_requests_limit || 0;
   const premiumPercent = premiumLimit > 0 ? (premiumUsed / premiumLimit) * 100 : 0;
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success('Đăng xuất thành công');
-      navigate('/login');
-    } catch (error) {
-      toast.error('Đăng xuất thất bại');
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-background">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">My Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Xin chào, <strong>{user?.full_name || user?.username}</strong>
-            </span>
-            <Link to="/user/profile">
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4 mr-2" />
-                Hồ sơ
-              </Button>
-            </Link>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Đăng xuất
-            </Button>
-          </div>
-        </div>
-      </header>
+    <div className="container mx-auto px-4 py-8">
+      {/* Welcome Banner */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">
+          Xin chào, {user?.full_name || user?.username}! 👋
+        </h1>
+        <p className="text-muted-foreground">
+          Quản lý tài khoản và sử dụng các công cụ văn bản AI của bạn
+        </p>
+      </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="space-y-8">
         {/* Subscription Status */}
-        <div className="mb-8">
+        <div>
           <h2 className="text-2xl font-bold mb-4">Gói đăng ký của bạn</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Card>
@@ -237,6 +213,7 @@ export default function UserDashboard() {
           </Card>
         )}
       </div>
+    </div>
     </div>
   );
 }
