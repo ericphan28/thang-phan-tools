@@ -319,7 +319,7 @@ export default function AdobeUsagePage() {
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => toast.info('💡 Hệ thống sẽ tự động fallback sang PyPDF2 khi hết quota Adobe')}
+                      onClick={() => toast('💡 Hệ thống sẽ tự động fallback sang PyPDF2 khi hết quota Adobe')}
                     >
                       Xem fallback options
                     </Button>

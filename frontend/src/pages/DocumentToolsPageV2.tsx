@@ -400,7 +400,7 @@ function ToolCard({ tool, isExpanded, onToggle }: {
   };
 
   return (
-    <Card className={`${colorClasses[tool.color]} transition-all`}>
+    <Card className={`${colorClasses[tool.color as keyof typeof colorClasses]} transition-all`}>
       <CardHeader className="cursor-pointer" onClick={onToggle}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1">
