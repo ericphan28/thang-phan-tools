@@ -74,26 +74,24 @@ export default function UserSubscriptionPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">My Subscription</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your plan and track AI usage
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link to="/pricing">
+    <div className="container mx-auto px-4 py-8">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Gói đăng ký của bạn</h1>
+        <p className="text-muted-foreground mb-4">
+          Quản lý gói dịch vụ và theo dõi mức sử dụng AI
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/user/pricing">
             <Button variant="outline">
               <Zap className="h-4 w-4 mr-2" />
-              Upgrade Plan
+              Nâng cấp gói
             </Button>
           </Link>
-          <Link to="/billing">
+          <Link to="/user/billing">
             <Button variant="outline">
               <CreditCard className="h-4 w-4 mr-2" />
-              Billing History
+              Lịch sử thanh toán
             </Button>
           </Link>
         </div>
@@ -105,13 +103,13 @@ export default function UserSubscriptionPage() {
           <p className="mt-4 text-muted-foreground">Loading subscription...</p>
         </div>
       ) : (
-        <>
+        <div className="space-y-6">
           {/* Subscription Overview */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Current Plan */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Current Plan</CardTitle>
+                <CardTitle className="text-sm font-medium">Gói hiện tại</CardTitle>
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -123,7 +121,7 @@ export default function UserSubscriptionPage() {
                 </p>
                 <div className="mt-3">
                   <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${getPlanBadgeClass(subscription?.plan_type || '')}`}>
-                    {formatCurrency(subscription?.monthly_price || 0)}/month
+                    {formatCurrency(subscription?.monthly_price || 0)}/tháng
                   </span>
                 </div>
               </CardContent>
@@ -132,15 +130,15 @@ export default function UserSubscriptionPage() {
             {/* Monthly Budget */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Monthly Budget</CardTitle>
+                <CardTitle className="text-sm font-medium">Ngân sách tháng</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {usage?.monthly_limit ? formatCurrency(usage.monthly_limit) : 'Unlimited'}
+                  {usage?.monthly_limit ? formatCurrency(usage.monthly_limit) : 'Không giới hạn'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Used: {formatCurrency(usage?.total_cost || 0)}
+                  Đã dùng: {formatCurrency(usage?.total_cost || 0)}
                 </p>
                 {usage?.monthly_limit && (
                   <div className="mt-3">
@@ -151,7 +149,7 @@ export default function UserSubscriptionPage() {
                       />
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {usagePercentage.toFixed(1)}% used
+                      Đã dùng {usagePercentage.toFixed(1)}%
                     </p>
                   </div>
                 )}
@@ -161,7 +159,7 @@ export default function UserSubscriptionPage() {
             {/* Total Requests */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+                <CardTitle className="text-sm font-medium">Tổng yêu cầu</CardTitle>
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -169,11 +167,11 @@ export default function UserSubscriptionPage() {
                   {formatNumber(usage?.total_requests || 0)}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  This billing period
+                  Chu kỳ thanh toán này
                 </p>
                 {subscription?.premium_requests_limit && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Premium limit: {formatNumber(subscription.premium_requests_limit)}/month
+                    Giới hạn Premium: {formatNumber(subscription.premium_requests_limit)}/tháng
                   </p>
                 )}
               </CardContent>
@@ -182,17 +180,17 @@ export default function UserSubscriptionPage() {
             {/* Remaining Budget */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Remaining</CardTitle>
+                <CardTitle className="text-sm font-medium">Còn lại</CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {usage?.remaining_budget !== null && usage?.remaining_budget !== undefined
                     ? formatCurrency(usage.remaining_budget)
-                    : 'Unlimited'}
+                    : 'Không giới hạn'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Available this month
+                  Khả dụng tháng này
                 </p>
               </CardContent>
             </Card>
@@ -203,7 +201,7 @@ export default function UserSubscriptionPage() {
             {/* Provider Costs */}
             <Card>
               <CardHeader>
-                <CardTitle>Cost by Provider</CardTitle>
+                <CardTitle>Chi phí theo nhà cung cấp</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -220,7 +218,7 @@ export default function UserSubscriptionPage() {
                         />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        <span>{formatNumber(provider.requests)} requests</span>
+                        <span>{formatNumber(provider.requests)} yêu cầu</span>
                         <span>{provider.percentage.toFixed(1)}%</span>
                       </div>
                     </div>
@@ -232,7 +230,7 @@ export default function UserSubscriptionPage() {
             {/* Top Operations */}
             <Card>
               <CardHeader>
-                <CardTitle>Top Operations</CardTitle>
+                <CardTitle>Thao tác nhiều nhất</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -240,7 +238,7 @@ export default function UserSubscriptionPage() {
                     <div key={idx} className="flex justify-between items-center">
                       <div>
                         <div className="font-medium text-sm">{op.operation}</div>
-                        <div className="text-xs text-muted-foreground">{op.count} calls</div>
+                        <div className="text-xs text-muted-foreground">{op.count} lần gọi</div>
                       </div>
                       <div className="text-sm font-medium">{formatCurrency(op.cost)}</div>
                     </div>
@@ -254,16 +252,16 @@ export default function UserSubscriptionPage() {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>Usage Trend</CardTitle>
+                <CardTitle>Xu hướng sử dụng</CardTitle>
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(Number(e.target.value))}
                   className="border rounded px-2 py-1 text-sm"
                 >
-                  <option value={7}>Last 7 days</option>
-                  <option value={14}>Last 14 days</option>
-                  <option value={30}>Last 30 days</option>
-                  <option value={90}>Last 90 days</option>
+                  <option value={7}>7 ngày qua</option>
+                  <option value={14}>14 ngày qua</option>
+                  <option value={30}>30 ngày qua</option>
+                  <option value={90}>90 ngày qua</option>
                 </select>
               </div>
             </CardHeader>
@@ -307,12 +305,12 @@ export default function UserSubscriptionPage() {
           {subscription && (
             <Card>
               <CardHeader>
-                <CardTitle>Billing Period</CardTitle>
+                <CardTitle>Chu kỳ thanh toán</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
-                    <div className="text-sm text-muted-foreground">Period Start</div>
+                    <div className="text-sm text-muted-foreground">Bắt đầu</div>
                     <div className="text-lg font-medium">
                       {subscription.current_period_start
                         ? new Date(subscription.current_period_start).toLocaleDateString('vi-VN')
@@ -320,7 +318,7 @@ export default function UserSubscriptionPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Period End</div>
+                    <div className="text-sm text-muted-foreground">Kết thúc</div>
                     <div className="text-lg font-medium">
                       {subscription.current_period_end
                         ? new Date(subscription.current_period_end).toLocaleDateString('vi-VN')
@@ -328,7 +326,7 @@ export default function UserSubscriptionPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-muted-foreground">Days Remaining</div>
+                    <div className="text-sm text-muted-foreground">Số ngày còn lại</div>
                     <div className="text-lg font-medium">
                       {subscription.current_period_end
                         ? Math.max(
@@ -348,9 +346,9 @@ export default function UserSubscriptionPage() {
                     <div className="flex items-center gap-2 text-yellow-800">
                       <AlertCircle className="h-5 w-5" />
                       <div>
-                        <div className="font-medium">Subscription Cancelled</div>
+                        <div className="font-medium">Đã hủy gói đăng ký</div>
                         <div className="text-sm">
-                          Your subscription will end on{' '}
+                          Gói của bạn sẽ kết thúc vào{' '}
                           {new Date(subscription.current_period_end!).toLocaleDateString('vi-VN')}
                         </div>
                       </div>
@@ -363,9 +361,9 @@ export default function UserSubscriptionPage() {
                     <div className="flex items-center gap-2 text-blue-800">
                       <Clock className="h-5 w-5" />
                       <div>
-                        <div className="font-medium">Trial Period</div>
+                        <div className="font-medium">Thời gian dùng thử</div>
                         <div className="text-sm">
-                          Your trial ends on{' '}
+                          Dùng thử kết thúc vào{' '}
                           {new Date(subscription.trial_end).toLocaleDateString('vi-VN')}
                         </div>
                       </div>
@@ -375,7 +373,7 @@ export default function UserSubscriptionPage() {
               </CardContent>
             </Card>
           )}
-        </>
+        </div>
       )}
     </div>
   );
