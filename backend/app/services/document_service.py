@@ -1070,11 +1070,20 @@ class DocumentService:
                 )
                 
                 # Create job WITH ocr_locale (this is where OCR is enabled)
-                export_pdf_job = ExportPDFJob(
-                    input_asset=input_asset,
-                    export_pdf_params=export_pdf_params,
-                    ocr_locale=ocr_locale_enum  # ✅ Pass OCR to job, not params
-                )
+                try:
+                    export_pdf_job = ExportPDFJob(
+                        input_asset=input_asset,
+                        export_pdf_params=export_pdf_params,
+                        ocr_locale=ocr_locale_enum  # ✅ Pass OCR to job, not params
+                    )
+                except TypeError as e:
+                    # Fallback: ocr_locale not supported in this SDK version
+                    logger.warning(f"   ⚠️  ocr_locale parameter not supported in this SDK version: {e}")
+                    logger.warning("   ⚠️  Creating export job WITHOUT ocr_locale (OCR may not work properly)")
+                    export_pdf_job = ExportPDFJob(
+                        input_asset=input_asset,
+                        export_pdf_params=export_pdf_params
+                    )
             except (ImportError, AttributeError) as e:
                 logger.warning(f"   ⚠️  OCR locale not supported: {adobe_locale}, using default export")
                 export_pdf_params = ExportPDFParams(

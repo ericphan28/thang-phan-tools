@@ -327,6 +327,13 @@ function ToolCard({ tool, isExpanded, onToggle }: {
       }
     }
 
+    // Enable Gemini API for PDF→Word by default (better Vietnamese support)
+    if (tool.id === 'pdf-to-word') {
+      formData.append('use_gemini', 'true');
+      formData.append('auto_detect_scanned', 'true');
+      formData.append('ocr_language', 'vi-VN');
+    }
+
     try {
       const response = await axios.post(
         `${API_BASE}${tool.endpoint}`,
