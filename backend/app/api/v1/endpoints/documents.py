@@ -359,7 +359,7 @@ async def convert_pdf_to_word(
         logger.info("")
         
         # Check which technology was actually used
-        if use_gemini and doc_service.gemini_model:
+        if use_gemini and doc_service.use_gemini:
             used_gemini = True
             # Get actual model name used
             actual_model = gemini_model or doc_service.gemini_model_name

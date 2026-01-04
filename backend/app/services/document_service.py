@@ -58,7 +58,11 @@ except ImportError:
 
 # Google Gemini API (optional) - RECOMMENDED for PDF → Word
 try:
-    import google.generativeai as genai
+    import warnings
+    # Suppress deprecation warning temporarily until migration to google.genai
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", FutureWarning)
+        import google.generativeai as genai
     import json
     import asyncio
     from app.services.gemini_service import get_gemini_service, GeminiService
