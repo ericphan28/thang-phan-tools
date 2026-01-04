@@ -679,26 +679,43 @@ OUTPUT: Extracted text only. No comments or metadata.
                 # Check if this is a merged header row (bold + empty cells after)
                 is_header_row = '**' in cell_text and any(c == '' for c in row_data[col_idx+1:] if col_idx < len(row_data)-1)
                 
-                # Handle multiline (<br/>)
+                # Handle multiline (<br/>) - Convert to proper line breaks
                 if '<br/>' in cell_text:
-                    lines_in_cell = cell_text.split('<br/>')
-                    for i, line in enumerate(lines_in_cell):
-                        if '**' in line:
-                            line = line.replace('**', '')
-                            run = cell.paragraphs[i if i == 0 else -1].add_run(line if i == 0 else '\n' + line)
-                            run.bold = True
-                        else:
-                            if i == 0:
-                                cell.text = line
-                            else:
-                                cell.add_paragraph(line)
-                # Handle bold
+                    # Convert <br/> tags to proper text formatting
+                    cell_text = self._convert_html_tags_to_text(cell_text)
+                    lines_in_cell = cell_text.split('\n')
+                    
+                    # Clear existing content and add first line
+                    if lines_in_cell:
+                        cell.text = lines_in_cell[0]
+                        # Add additional lines as new paragraphs
+                        for line in lines_in_cell[1:]:
+                            if line.strip():  # Skip empty lines
+                                cell.add_paragraph(line.strip())
+                    
+                    # Handle bold formatting
+                    for paragraph in cell.paragraphs:
+                        paragraph_text = paragraph.text
+                        if '**' in paragraph_text:
+                            # Clear paragraph and re-add with formatting
+                            paragraph.clear()
+                            bold_parts = paragraph_text.split('**')
+                            for i, part in enumerate(bold_parts):
+                                if part:
+                                    run = paragraph.add_run(part)
+                                    run.bold = (i % 2 == 1)  # Odd indices are bold
+                # Handle bold (for cells without <br/> tags)
                 elif '**' in cell_text:
-                    cell_text = cell_text.replace('**', '')
-                    run = cell.paragraphs[0].add_run(cell_text)
-                    run.bold = True
+                    # Clear cell and re-add with formatting
+                    cell.text = ''  # Clear existing text
+                    bold_parts = cell_text.split('**')
+                    for i, part in enumerate(bold_parts):
+                        if part:
+                            run = cell.paragraphs[0].add_run(part)
+                            run.bold = (i % 2 == 1)  # Odd indices are bold
                 else:
-                    cell.text = cell_text
+                    # Plain text - also convert any HTML tags
+                    cell.text = self._convert_html_tags_to_text(cell_text)
                 
                 # Alignment
                 alignment = table_data['alignments'][col_idx]
@@ -797,8 +814,12 @@ OUTPUT: Extracted text only. No comments or metadata.
                         logger.warning(f"Failed to parse table, rendering as text: {e}")
                         doc.add_paragraph(table_content)
                 else:
+                    # Regular text - convert HTML-like tags to proper formatting
+                    # Fix: Convert <br/> tags to actual line breaks
+                    processed_part = self._convert_html_tags_to_text(part)
+                    
                     # Regular text - preserve paragraphs
-                    for paragraph_text in part.split('\\n'):
+                    for paragraph_text in processed_part.split('\n'):
                         if paragraph_text.strip():
                             p = doc.add_paragraph(paragraph_text)
                             # Set font (Arial 12pt for Vietnamese)
@@ -815,3 +836,35 @@ OUTPUT: Extracted text only. No comments or metadata.
         except Exception as e:
             logger.error(f"Failed to create Word document: {e}")
             raise
+
+    def _convert_html_tags_to_text(self, text: str) -> str:
+        """
+        Convert common HTML-like tags to plain text formatting
+        
+        Converts:
+        - <br/> or <br> → \n (line break)
+        - &nbsp; → space
+        - Other HTML entities → plain text
+        """
+        import re
+        
+        # Convert <br/> and <br> tags to newlines
+        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+        
+        # Convert common HTML entities
+        html_entities = {
+            '&nbsp;': ' ',
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#39;': "'",
+        }
+        
+        for entity, replacement in html_entities.items():
+            text = text.replace(entity, replacement)
+        
+        # Remove any remaining HTML tags (basic cleanup)
+        text = re.sub(r'<[^>]+>', '', text)
+        
+        return text
