@@ -317,7 +317,6 @@ class GeminiService:
                         "data": pdf_base64
                     }
                 ], **kwargs)
-                ], **kwargs)
             
             print(f"✅ Gemini response received!", flush=True)
             
