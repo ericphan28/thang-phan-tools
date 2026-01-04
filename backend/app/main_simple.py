@@ -9,9 +9,10 @@ if sys.platform == "win32":
 from fastapi import FastAPI, Request, status
 
 # ============ REQUEST SIZE & TIMEOUT OPTIMIZATION ============
-# Increase default limits for file uploads (default is 1MB)
-# This helps avoid 408 timeouts and request body size errors
-MAX_REQUEST_BODY_SIZE = 100 * 1024 * 1024  # 100MB
+# Increase default limits for file uploads and processing time
+MAX_REQUEST_BODY_SIZE = 200 * 1024 * 1024  # 200MB for large PDFs
+REQUEST_TIMEOUT = 300  # 5 minutes for large PDF processing
+KEEP_ALIVE_TIMEOUT = 600  # 10 minutes keep-alive
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -32,11 +33,12 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Utility Server API",
     description="API for Authentication, User Management, Document Processing, Image Tools and OCR with AI-powered Data Visualization",
-    version="2.1.4",  # Fixed quota + request size optimization
-    # Swagger UI config for large file uploads
+    version="2.1.5",  # Enhanced timeout configuration
+    # Swagger UI config for large file uploads and long processing
     swagger_ui_parameters={
-        "requestTimeout": 120000,  # 2 minutes timeout for Swagger UI
+        "requestTimeout": 300000,  # 5 minutes timeout for Swagger UI
         "displayRequestDuration": True,
+        "docExpansion": "none",  # Don't expand all endpoints by default
     },
 )
 
@@ -79,7 +81,42 @@ async def generic_exception_handler(request: Request, exc: Exception):
         content={"detail": str(exc)},
     )
 
-# CORS middleware - Must be added FIRST
+# Timeout middleware for long-running operations
+import asyncio
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, timeout: int = REQUEST_TIMEOUT):
+        super().__init__(app)
+        self.timeout = timeout
+
+    async def dispatch(self, request: Request, call_next):
+        """Add timeout to requests, especially for file processing endpoints"""
+        
+        # Apply extended timeout for file processing endpoints
+        if any(path in str(request.url) for path in [
+            '/documents/', '/ocr/', '/convert/', '/upload/'
+        ]):
+            timeout = self.timeout
+        else:
+            timeout = 60  # 1 minute for other endpoints
+            
+        try:
+            return await asyncio.wait_for(call_next(request), timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.warning(f"⏰ Request timeout ({timeout}s) for {request.url}")
+            return JSONResponse(
+                status_code=408,
+                content={
+                    "detail": f"Request timed out after {timeout} seconds. Try with a smaller file or check your connection."
+                }
+            )
+
+# Add timeout middleware
+app.add_middleware(TimeoutMiddleware)
+
+# CORS middleware - Must be added AFTER custom middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Temporarily allow all origins for testing

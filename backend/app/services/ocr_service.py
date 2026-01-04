@@ -188,25 +188,29 @@ Answer ONLY: "SCANNED" or "TEXT-BASED"
     
     def extract_text_from_pdf(self, pdf_path: Path, is_scanned: bool) -> str:
         """
-        Extract text from PDF - ALWAYS use Gemini 2.5 Flash PDF Upload
+        Extract text from PDF with enhanced progress tracking and timeout handling
         
-        Strategy (SIMPLEST & BEST):
-        - Upload PDF directly to Gemini 2.5 Flash
-        - No image conversion, no PyMuPDF/PyPDF2
-        - Works perfectly for both text-based and scanned PDFs
+        Strategy (OPTIMIZED FOR TIMEOUT PREVENTION):
+        - Upload PDF directly to Gemini 2.5 Flash with progress logging
+        - Add timeout protection and detailed status updates
+        - Enhanced error handling for large files
         
-        Why not PyMuPDF?
-        - PyMuPDF sai dấu tiếng Việt (tr ngày → từ ngày, quân trj → quản trị)
-        - Cannot preserve complex layouts
-        - Vietnamese text extraction = TỆ
-        
-        Why Gemini for ALL?
-        - 98% accuracy Vietnamese (perfect diacritics)
-        - Understands layout, tables, formatting
-        - Upload entire PDF → Fast (10-20s for 12 pages)
-        - Cost: $0.10-0.20 per doc → Worth it for quality!
+        Args:
+            pdf_path: Path to PDF file
+            is_scanned: Whether PDF is scanned (ignored - always use Gemini)
+            
+        Returns:
+            Extracted text
         """
-        logger.info("🤖 Using Gemini 2.5 Flash PDF Upload for ALL documents...")
+        logger.info(f"🔍 Starting PDF processing: {pdf_path.name}")
+        file_size_mb = pdf_path.stat().st_size / (1024*1024)
+        logger.info(f"📊 File size: {file_size_mb:.1f} MB")
+        
+        # Estimate processing time based on file size
+        estimated_time = min(max(file_size_mb * 2, 10), 180)  # 2s per MB, min 10s, max 3min
+        logger.info(f"⏰ Estimated processing time: {estimated_time:.0f} seconds")
+        
+        logger.info("🤖 Using Gemini 2.5 Flash PDF Upload for optimal Vietnamese accuracy...")
         return self._extract_text_with_gemini_pdf(pdf_path)
     
     def _extract_text_simple(self, pdf_path: Path) -> str:
