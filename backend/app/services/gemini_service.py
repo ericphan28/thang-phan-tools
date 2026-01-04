@@ -263,32 +263,62 @@ class GeminiService:
         uploaded_file = None
         
         try:
-            # Upload PDF to Gemini
+            # Upload PDF to Gemini (with fallback for older library versions)
             print(f"\n{'='*80}", flush=True)
             print(f"🚀 GEMINI PDF UPLOAD - START", flush=True)
             print(f"📄 File: {Path(pdf_path).name}", flush=True)
             print(f"{'='*80}\n", flush=True)
             
-            uploaded_file = genai.upload_file(pdf_path, mime_type="application/pdf")
-            print(f"✅ File uploaded to Gemini: {uploaded_file.name}", flush=True)
+            # Check if upload_file is available (newer versions)
+            if hasattr(genai, 'upload_file'):
+                print("📤 Using genai.upload_file() method (recommended)", flush=True)
+                uploaded_file = genai.upload_file(pdf_path, mime_type="application/pdf")
+                print(f"✅ File uploaded to Gemini: {uploaded_file.name}", flush=True)
+                
+                # Wait for processing
+                import time as time_module
+                while uploaded_file.state.name == "PROCESSING":
+                    print("⏳ Waiting for Gemini to process PDF...", flush=True)
+                    time_module.sleep(1)
+                    uploaded_file = genai.get_file(uploaded_file.name)
+                
+                if uploaded_file.state.name == "FAILED":
+                    raise ValueError(f"PDF upload failed: {uploaded_file.state}")
+                
+                # Create model
+                model_obj = genai.GenerativeModel(model)
+                print(f"🤖 Model created: {model}", flush=True)
+                
+                # Generate content with PDF
+                print(f"💬 Sending prompt + PDF to Gemini...", flush=True)
+                response = model_obj.generate_content([prompt, uploaded_file], **kwargs)
+                
+            else:
+                # Fallback for older versions: use base64 encoding
+                print("📤 Using base64 fallback method (older library version)", flush=True)
+                import base64
+                
+                # Read PDF and encode to base64
+                with open(pdf_path, 'rb') as f:
+                    pdf_bytes = f.read()
+                    pdf_base64 = base64.b64encode(pdf_bytes).decode()
+                
+                print(f"📄 PDF encoded: {len(pdf_base64)} characters", flush=True)
+                
+                # Create content with inline data
+                model_obj = genai.GenerativeModel(model)
+                print(f"🤖 Model created: {model}", flush=True)
+                
+                print(f"💬 Sending prompt + PDF (base64) to Gemini...", flush=True)
+                response = model_obj.generate_content([
+                    prompt,
+                    {
+                        "mime_type": "application/pdf",
+                        "data": pdf_base64
+                    }
+                ], **kwargs)
+                ], **kwargs)
             
-            # Wait for processing
-            import time as time_module
-            while uploaded_file.state.name == "PROCESSING":
-                print("⏳ Waiting for Gemini to process PDF...", flush=True)
-                time_module.sleep(1)
-                uploaded_file = genai.get_file(uploaded_file.name)
-            
-            if uploaded_file.state.name == "FAILED":
-                raise ValueError(f"PDF upload failed: {uploaded_file.state}")
-            
-            # Create model
-            model_obj = genai.GenerativeModel(model)
-            print(f"🤖 Model created: {model}", flush=True)
-            
-            # Generate content with PDF
-            print(f"💬 Sending prompt + PDF to Gemini...", flush=True)
-            response = model_obj.generate_content([prompt, uploaded_file], **kwargs)
             print(f"✅ Gemini response received!", flush=True)
             
             # DEBUG: Log response text to check [VSPAN=N] markers
@@ -369,12 +399,14 @@ class GeminiService:
             
             raise
         finally:
-            # Cleanup uploaded file
-            if uploaded_file:
+            # Cleanup uploaded file (only if using upload_file method)
+            if uploaded_file and hasattr(genai, 'delete_file'):
                 try:
                     genai.delete_file(uploaded_file.name)
-                except:
-                    pass
+                    print(f"🗑️ Cleaned up uploaded file: {uploaded_file.name}", flush=True)
+                except Exception as cleanup_error:
+                    print(f"⚠️ Cleanup warning: {cleanup_error}", flush=True)
+                    pass  # Ignore cleanup errors
     
     def generate_content_with_image(
         self,

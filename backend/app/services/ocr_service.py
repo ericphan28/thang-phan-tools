@@ -839,32 +839,118 @@ OUTPUT: Extracted text only. No comments or metadata.
 
     def _convert_html_tags_to_text(self, text: str) -> str:
         """
-        Convert common HTML-like tags to plain text formatting
+        Convert HTML-like tags and entities to plain text formatting
+        
+        IMPROVED LOGIC:
+        1. Detect issues BEFORE processing (better accuracy)
+        2. Smart tag handling (preserve content, remove only structural tags)
+        3. Careful entity conversion (avoid content loss)  
+        4. Unicode normalization for Vietnamese
+        5. Comprehensive logging for improvement
         
         Converts:
-        - <br/> or <br> → \n (line break)
-        - &nbsp; → space
-        - Other HTML entities → plain text
+        - <br/>, <br> → \n (line breaks)
+        - HTML entities → Unicode (safe conversion)
+        - Structural tags → removed (content preserved)
+        - Vietnamese characters → properly normalized
+        """
+        import re
+        import html
+        import unicodedata
+        
+        # Store original for comparison and detection
+        original_text = text
+        
+        # Step 1: Detect issues BEFORE processing (more accurate)
+        self._detect_unhandled_html_patterns(text, "BEFORE_PROCESSING")
+        
+        # Step 2: Convert <br/> and <br> tags to newlines first (safe operation)
+        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+        
+        # Step 3: Smart HTML entity conversion
+        try:
+            # Use html.unescape for comprehensive conversion (600+ entities)
+            unescaped_text = html.unescape(text)
+            if unescaped_text != text:
+                changed_chars = abs(len(text) - len(unescaped_text))
+                logger.info(f"🔄 HTML entities converted: {changed_chars} character changes")
+            text = unescaped_text
+            
+        except Exception as e:
+            logger.warning(f"HTML unescape failed: {e}, using manual fallback")
+            # Fallback: Manual conversion for critical entities
+            critical_entities = {
+                '&nbsp;': ' ', '&amp;': '&', '&lt;': '<', '&gt;': '>',
+                '&quot;': '"', '&#39;': "'", '&apos;': "'",
+                # Vietnamese critical entities
+                '&aacute;': 'á', '&agrave;': 'à', '&acirc;': 'â', '&atilde;': 'ã',
+                '&eacute;': 'é', '&egrave;': 'è', '&ecirc;': 'ê', 
+                '&iacute;': 'í', '&igrave;': 'ì', '&icirc;': 'î',
+                '&oacute;': 'ó', '&ograve;': 'ò', '&ocirc;': 'ô', '&otilde;': 'õ',
+                '&uacute;': 'ú', '&ugrave;': 'ù', '&ucirc;': 'û',
+                '&yacute;': 'ý', '&ygrave;': 'ỳ', '&ycirc;': 'ŷ',
+            }
+            for entity, replacement in critical_entities.items():
+                text = text.replace(entity, replacement)
+        
+        # Step 4: Smart HTML tag removal (preserve content, remove only structural tags)
+        # Remove common structural tags but keep content
+        structural_tags = ['p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'section', 'article']
+        for tag in structural_tags:
+            # Remove opening and closing tags, keep content
+            text = re.sub(f'</?{tag}[^>]*>', '', text, flags=re.IGNORECASE)
+        
+        # Remove any remaining well-formed HTML tags (but be careful with < > in content)  
+        # Only remove if it looks like a proper HTML tag (starts with letter)
+        text = re.sub(r'</?[a-zA-Z][^>]*>', '', text)
+        
+        # Step 5: Vietnamese Unicode normalization (important for consistency)
+        try:
+            text = unicodedata.normalize('NFC', text)
+        except Exception as e:
+            logger.warning(f"Unicode normalization failed: {e}")
+        
+        # Step 6: Clean up whitespace intelligently
+        # Multiple newlines → double newline (preserve paragraph structure)
+        text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  
+        # Multiple spaces → single space
+        text = re.sub(r'[ \t]+', ' ', text)
+        # Clean up space around newlines
+        text = re.sub(r' *\n *', '\n', text)
+        # Trim start/end whitespace
+        text = text.strip()
+        
+        # Step 7: Final detection of remaining issues (for improvement)
+        self._detect_unhandled_html_patterns(text, "AFTER_PROCESSING")
+        
+        return text
+    
+    def _detect_unhandled_html_patterns(self, processed_text: str, stage: str):
+        """
+        Detect HTML entities/tags that weren't handled properly
+        Enhanced with stage detection for better debugging
         """
         import re
         
-        # Convert <br/> and <br> tags to newlines
-        text = re.sub(r'<br\s*/?>', '\n', text, flags=re.IGNORECASE)
+        # Detect remaining HTML entities (&#xxx; or &name;)
+        remaining_entities = re.findall(r'&[a-zA-Z0-9#]+;', processed_text)
+        if remaining_entities:
+            unique_entities = list(set(remaining_entities))[:5]  # Show max 5
+            logger.warning(f"⚠️  [{stage}] HTML entities: {unique_entities}")
         
-        # Convert common HTML entities
-        html_entities = {
-            '&nbsp;': ' ',
-            '&amp;': '&',
-            '&lt;': '<',
-            '&gt;': '>',
-            '&quot;': '"',
-            '&#39;': "'",
-        }
+        # Detect remaining HTML tags (but exclude false positives like mathematical < >)
+        # Only flag if it looks like proper HTML tags
+        remaining_tags = re.findall(r'<[a-zA-Z/][^>]*>', processed_text)
+        if remaining_tags:
+            unique_tags = list(set(remaining_tags))[:3]  # Show max 3
+            logger.warning(f"⚠️  [{stage}] HTML tags: {unique_tags}")
         
-        for entity, replacement in html_entities.items():
-            text = text.replace(entity, replacement)
+        # Detect potential encoding issues specific to Vietnamese
+        vietnamese_encoding_issues = re.findall(r'[àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ][?�]|[?�][àáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ]', processed_text)
+        if vietnamese_encoding_issues:
+            logger.warning(f"⚠️  [{stage}] Vietnamese encoding issues: {vietnamese_encoding_issues[:3]}")
         
-        # Remove any remaining HTML tags (basic cleanup)
-        text = re.sub(r'<[^>]+>', '', text)
-        
-        return text
+        # Summary logging
+        total_issues = len(remaining_entities) + len(remaining_tags) + len(vietnamese_encoding_issues)
+        if total_issues > 0 and stage == "AFTER_PROCESSING":
+            logger.info(f"📊 Processing complete: {total_issues} patterns need attention")
