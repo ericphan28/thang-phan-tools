@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear Cache & Login Again</title>
+</head>
+<body>
+  <h1>Clearing localStorage...</h1>
+  <script>
+    // Clear all auth data
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    console.log('✅ Cleared localStorage');
+    
+    // Redirect to login
+    setTimeout(() => {
+      window.location.href = 'http://localhost:5173/login';
+    }, 1000);
+  </script>
+  <p>Redirecting to login page in 1 second...</p>
+</body>
+</html>

@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from app.core.config import settings
-from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr, ocr_compare, ai_admin, deployment, subscription, vb_hanh_chinh, adobe_usage
+from app.api.v1.endpoints import auth, users, roles, activity_logs, documents, images, ocr, ocr_compare, ai_admin, deployment, subscription, vb_hanh_chinh, adobe_usage, gemini_keys
 from app.api.v1.endpoints import settings as settings_router
 from app.routers import mau_2c
 import logging
@@ -137,6 +137,7 @@ app.include_router(ocr.router, prefix=f"{settings.API_PREFIX}/ocr", tags=["📝 
 app.include_router(ocr_compare.router, prefix=f"{settings.API_PREFIX}", tags=["🔍 OCR Comparison"])
 app.include_router(vb_hanh_chinh.router, prefix=f"{settings.API_PREFIX}/vb-hanh-chinh", tags=["📋 Văn Bản Hành Chính"])
 app.include_router(ai_admin.router, prefix=f"{settings.API_PREFIX}/ai-admin", tags=["🔑 AI Admin"])
+app.include_router(gemini_keys.router, prefix=f"{settings.API_PREFIX}/admin", tags=["🔑 Gemini Keys Management"])
 app.include_router(subscription.router, prefix=f"{settings.API_PREFIX}/subscription", tags=["💳 User Subscription"])
 app.include_router(settings_router.router, prefix=f"{settings.API_PREFIX}/settings", tags=["⚙️ Settings & Configuration"])
 app.include_router(adobe_usage.router, prefix=f"{settings.API_PREFIX}", tags=["📊 Adobe Usage Tracking"])

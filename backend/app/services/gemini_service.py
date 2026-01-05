@@ -17,6 +17,8 @@ from pathlib import Path
 
 from app.core.config import settings
 from app.services.ai_usage_service import log_usage, get_api_key
+from app.services.gemini_key_service import GeminiKeyService
+from app.schemas.gemini_keys import UsageLogCreate, UsageStatusEnum
 
 
 class GeminiService:
@@ -28,6 +30,7 @@ class GeminiService:
     - Tracks tokens, cost, processing time
     - Handles errors and logs them
     - Zero-config - just use it like normal Gemini SDK
+    - NEW: Auto key selection & rotation from database
     """
     
     def __init__(self, db: Session, user_id: Optional[int] = None):
@@ -40,11 +43,18 @@ class GeminiService:
         """
         self.db = db
         self.user_id = user_id
+        self.key_service = GeminiKeyService(db)
         
-        # Get API key from database
-        api_key = get_api_key("gemini", db)
-        if not api_key:
-            raise ValueError("Gemini API key not found in database")
+        # Get API key from database ONLY (no fallback to .env)
+        selected_key = self.key_service.select_best_key()
+        if not selected_key:
+            raise ValueError(
+                "Không tìm thấy Gemini API key nào khả dụng. "
+                "Vui lòng thêm key tại Admin > AI Keys."
+            )
+        
+        api_key = selected_key.api_key_decrypted
+        self.current_key_id = selected_key.id
         
         # Configure Gemini
         genai.configure(api_key=api_key)
@@ -494,6 +504,29 @@ class GeminiService:
             
             # Re-raise exception
             raise
+    
+    def _calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """
+        Tính cost dựa trên pricing của Gemini models
+        Pricing (Jan 2026): https://ai.google.dev/pricing
+        """
+        # Pricing per 1M tokens (USD)
+        PRICING = {
+            "gemini-2.5-flash": {"input": 0.30, "output": 2.50},
+            "gemini-2.5-flash-lite": {"input": 0.10, "output": 0.40},
+            "gemini-2.5-pro": {"input": 1.25, "output": 10.00},
+            "gemini-2.0-flash-vision": {"input": 0.30, "output": 2.50},
+            "gemini-2.0-flash": {"input": 0.30, "output": 2.50},
+        }
+        
+        # Default pricing if model not found
+        default_pricing = {"input": 0.30, "output": 2.50}
+        pricing = PRICING.get(model, default_pricing)
+        
+        input_cost = (input_tokens / 1_000_000) * pricing["input"]
+        output_cost = (output_tokens / 1_000_000) * pricing["output"]
+        
+        return round(input_cost + output_cost, 6)
 
 
 # Convenience function for quick usage

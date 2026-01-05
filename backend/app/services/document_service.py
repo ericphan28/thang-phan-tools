@@ -433,29 +433,16 @@ class DocumentService:
         logger.info(f"   Final Status: {'✅ ENABLED' if self.use_adobe else '❌ DISABLED'}")
         logger.info("="*60)
         
-        # Google Gemini API - RECOMMENDED for PDF → Word with Vietnamese
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.gemini_model_name = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)  # Default to best model
-        self.use_gemini = False
+        # Google Gemini API - Uses database keys via GeminiService
+        self.gemini_model_name = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
+        self.use_gemini = GEMINI_AVAILABLE
         self.gemini_service = None  # Will be initialized with db session
         
-        if self.gemini_api_key and GEMINI_AVAILABLE:
-            try:
-                # Just configure genai for file upload/download operations
-                genai.configure(api_key=self.gemini_api_key)
-                self.use_gemini = True
-                
-                # Get model info for logging
-                model_info = GEMINI_MODELS.get(self.gemini_model_name, {})
-                model_display = model_info.get("name", self.gemini_model_name)
-                logger.info(f"✅ Gemini API enabled - Model: {model_display} (Quality: {model_info.get('quality', '?')}/10)")
-                logger.info("✅ Auto-logging enabled via GeminiService wrapper")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Gemini API: {e}")
-                self.use_gemini = False
-        elif self.gemini_api_key and not GEMINI_AVAILABLE:
-            logger.warning("GEMINI_API_KEY found but google-generativeai not installed. Run: pip install google-generativeai")
-            self.use_gemini = False
+        if self.use_gemini:
+            logger.info(f"✅ Gemini API enabled - Model: {self.gemini_model_name}")
+            logger.info("✅ Keys managed via database (Admin > AI Keys)")
+        else:
+            logger.warning("⚠️ google-generativeai not installed. Run: pip install google-generativeai")
         
     def get_available_gemini_models(self) -> dict:
         """Get list of all available Gemini models with metadata"""
@@ -476,7 +463,7 @@ class DocumentService:
             ValueError: If model not found or Gemini not configured
         """
         if not self.use_gemini:
-            raise ValueError("Gemini API not configured. Set GEMINI_API_KEY in .env")
+            raise ValueError("Gemini API not available. Install: pip install google-generativeai")
         
         if model_name not in GEMINI_MODELS:
             available = ", ".join(GEMINI_MODELS.keys())
@@ -1441,7 +1428,7 @@ Ngôn ngữ: {language}
         start_time = time.time()
         
         if not self.use_gemini:
-            raise HTTPException(500, "Gemini API not configured. Set GEMINI_API_KEY in .env")
+            raise HTTPException(500, "Gemini API không khả dụng. Vui lòng thêm API keys tại Admin > AI Keys")
         
         # Switch model if specified
         original_model = self.gemini_model_name

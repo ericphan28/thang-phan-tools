@@ -35,6 +35,7 @@ import DocumentToolsPageV2 from './pages/DocumentToolsPageV2';
 import AdobeOnlyTestPage from './pages/AdobeOnlyTestPage';
 import AdobeUsagePage from './pages/AdobeUsagePage';
 import UserLayout from './components/layout/UserLayout';
+import GeminiKeysManagementPage from './pages/GeminiKeysManagementPage';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -144,6 +145,7 @@ function App() {
                 <Route path="data-visualization" element={<DataVisualizationPage />} />
                 <Route path="ai-admin" element={<AIAdminDashboardPage />} />
                 <Route path="ai-keys" element={<AIKeysManagementPage />} />
+                <Route path="gemini-keys" element={<GeminiKeysManagementPage />} />
                 <Route path="deployment" element={<DeploymentMonitor />} />
                 <Route path="subscription" element={<UserSubscriptionPage />} />
                 <Route path="pricing" element={<PricingPage />} />
