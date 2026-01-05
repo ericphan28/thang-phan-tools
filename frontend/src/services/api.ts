@@ -41,8 +41,9 @@ api.interceptors.request.use((config) => {
       );
       const sizeInMB = totalSize / (1024 * 1024);
       
-      // Dynamic timeout: 30s base + 10s per MB, max 5 minutes
-      const dynamicTimeout = Math.min(30000 + (sizeInMB * 10000), 300000);
+      // Dynamic timeout: 60s base + 20s per MB, max 5 minutes
+      // OCR/AI processing needs more time than simple conversion
+      const dynamicTimeout = Math.min(60000 + (sizeInMB * 20000), 300000);
       config.timeout = dynamicTimeout;
       
       console.log(`📊 File size: ${sizeInMB.toFixed(1)}MB, Timeout: ${dynamicTimeout/1000}s`);

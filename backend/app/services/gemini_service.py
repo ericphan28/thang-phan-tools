@@ -91,11 +91,9 @@ class GeminiService:
                 total_tokens=input_tokens + output_tokens,
                 cost_usd=total_cost,
                 request_type=operation,
-                status=UsageStatus.SUCCESS if status == "success" else UsageStatus.ERROR,
+                status=UsageStatus.SUCCESS if status == "success" else UsageStatus.FAILED,
                 error_message=error_message,
-                processing_time_ms=int(processing_time * 1000) if processing_time else None,
-                request_metadata=str(metadata) if metadata else None,
-                created_at=datetime.utcnow()
+                response_time_ms=int(processing_time * 1000) if processing_time else None
             )
             
             self.db.add(usage_log)
@@ -111,8 +109,8 @@ class GeminiService:
                 ).first()
                 
                 if monthly_quota:
-                    monthly_quota.usage_count += input_tokens + output_tokens
-                    monthly_quota.updated_at = datetime.utcnow()
+                    monthly_quota.quota_used += input_tokens + output_tokens
+                    monthly_quota.last_updated = datetime.utcnow()
             
             self.db.commit()
             
