@@ -3501,9 +3501,15 @@ async def ocr_to_word(
     temp_word_path = None
     start_time = time.time()
     
+    logger.info("="*80)
+    logger.info("🚀 OCR-TO-WORD REQUEST STARTED")
+    logger.info(f"📄 Filename: {file.filename}")
+    logger.info(f"📊 Content-Type: {file.content_type}")
+    
     # Get current user from header (optional)
     current_user = None
     if authorization:
+        logger.info("🔑 Checking authorization header...")
         try:
             from app.core.security import decode_access_token
             if authorization.startswith("Bearer "):
@@ -3512,14 +3518,20 @@ async def ocr_to_word(
                 user_id = payload.get("user_id")
                 if user_id:
                     current_user = db.query(User).filter(User.id == user_id).first()
-        except:
+                    logger.info(f"✅ User authenticated: {current_user.email}")
+        except Exception as auth_err:
+            logger.warning(f"⚠️ Auth failed: {auth_err}")
             pass  # Ignore errors - demo mode
     
     is_demo_user = current_user is None  # Public demo mode
+    logger.info(f"👤 Mode: {'PUBLIC DEMO' if is_demo_user else 'AUTHENTICATED USER'}")
+    logger.info("="*80)
     
     try:
         # Validate file type
+        logger.info("🔍 Step 1: Validating file type...")
         if not file.filename.lower().endswith('.pdf'):
+            logger.error("❌ Invalid file type - not PDF")
             raise HTTPException(400, "Chỉ hỗ trợ file PDF. Vui lòng chọn file PDF.")
 
         # NOTE: Do NOT check/increment quota yet.
@@ -3542,7 +3554,7 @@ async def ocr_to_word(
             )
         
         # Save uploaded file
-        logger.info(f"📥 Saving uploaded file: {file.filename}")
+        logger.info("📥 Step 2: Saving uploaded file...")
         upload_dir = Path("uploads/ocr")
         upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -3551,11 +3563,16 @@ async def ocr_to_word(
         import uuid
         temp_pdf_path = upload_dir / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}.pdf"
         
+        logger.info(f"💾 Temp path: {temp_pdf_path}")
         async with aiofiles.open(temp_pdf_path, 'wb') as out_file:
             content = await file.read()
             await out_file.write(content)
+        
+        file_size_mb = len(content) / (1024 * 1024)
+        logger.info(f"✅ File saved: {file_size_mb:.2f} MB")
 
         # Early sanity checks for problematic PDFs (encrypted/corrupt)
+        logger.info("🔍 Step 3: Checking PDF validity...")
         try:
             import PyPDF2
             pdf_reader = PyPDF2.PdfReader(str(temp_pdf_path))
@@ -3648,35 +3665,59 @@ async def ocr_to_word(
             logger.info("🎭 Demo mode - skipping quota check")
         
         # Step 2: Extract text (long operation - up to 3 minutes for large PDFs)
-        logger.info("📝 Extracting text with Gemini AI...")
+        logger.info("="*80)
+        logger.info("📝 Step 5: STARTING GEMINI AI EXTRACTION")
+        logger.info(f"⏰ Estimated time: {file_size_mb * 2:.0f}s for {file_size_mb:.1f}MB file")
+        logger.info("="*80)
+        
+        extraction_start = time.time()
         try:
             extracted_text = ocr_service.extract_text_from_pdf(temp_pdf_path, is_scanned)
-        except Exception:
+            extraction_time = time.time() - extraction_start
+            logger.info("="*80)
+            logger.info(f"✅ GEMINI EXTRACTION COMPLETED in {extraction_time:.1f}s")
+            logger.info(f"📊 Extracted {len(extracted_text)} characters")
+            logger.info("="*80)
+        except Exception as extraction_err:
+            extraction_time = time.time() - extraction_start
+            logger.error("="*80)
+            logger.error(f"❌ GEMINI EXTRACTION FAILED after {extraction_time:.1f}s")
+            logger.error(f"Error: {str(extraction_err)}")
+            logger.error("="*80)
+            
             # Roll back quota increment if AI OCR failed
             if not is_demo_user and 'quota_incremented' in locals() and quota_incremented:
+                logger.warning("🔄 Rolling back quota increment...")
                 try:
                     # Re-open DB session to rollback
                     QuotaService.rollback_quota_increment(current_user, db)
                     db.commit()
+                    logger.info("✅ Quota rollback successful")
                 except Exception as rollback_err:
-                    logger.error(f"Rollback failed: {rollback_err}")
+                    logger.error(f"❌ Rollback failed: {rollback_err}")
             raise
         
         if not extracted_text or len(extracted_text.strip()) < 10:
+            logger.error(f"❌ Extracted text too short: {len(extracted_text)} chars")
             raise HTTPException(400, "Không thể trích xuất văn bản từ file này. Vui lòng thử file khác.")
         
         # Step 3: Create Word document
-        logger.info("📄 Creating Word document...")
+        logger.info("📄 Step 6: Creating Word document...")
         temp_word_path = upload_dir / f"OCR_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
         
+        word_start = time.time()
         ocr_service.create_word_document(
             text=extracted_text,
             output_path=temp_word_path,
             title=f"Trích xuất văn bản - {file.filename}"
         )
+        word_time = time.time() - word_start
+        logger.info(f"✅ Word created in {word_time:.2f}s")
         
         processing_time = time.time() - start_time
-        logger.info(f"✅ Processing completed in {processing_time:.2f}s")
+        logger.info("="*80)
+        logger.info(f"🎉 TOTAL PROCESSING TIME: {processing_time:.2f}s")
+        logger.info("="*80)
         
         # Log analytics (success) - only for authenticated users
         if not is_demo_user:

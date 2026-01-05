@@ -93,25 +93,42 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         """Add timeout to requests, especially for file processing endpoints"""
+        import time
+        start_time = time.time()
+        
+        # Log incoming request
+        logger.info(f"📥 {request.method} {request.url.path}")
         
         # Apply extended timeout for file processing endpoints
         if any(path in str(request.url) for path in [
             '/documents/', '/ocr/', '/convert/', '/upload/'
         ]):
             timeout = self.timeout
+            logger.info(f"⏰ Extended timeout: {timeout}s for file processing")
         else:
             timeout = 60  # 1 minute for other endpoints
             
         try:
-            return await asyncio.wait_for(call_next(request), timeout=timeout)
+            response = await asyncio.wait_for(call_next(request), timeout=timeout)
+            
+            # Log response
+            duration = time.time() - start_time
+            logger.info(f"📤 {request.method} {request.url.path} → {response.status_code} ({duration:.2f}s)")
+            
+            return response
         except asyncio.TimeoutError:
-            logger.warning(f"⏰ Request timeout ({timeout}s) for {request.url}")
+            duration = time.time() - start_time
+            logger.error(f"⏰ TIMEOUT after {duration:.1f}s for {request.url}")
             return JSONResponse(
                 status_code=408,
                 content={
                     "detail": f"Request timed out after {timeout} seconds. Try with a smaller file or check your connection."
                 }
             )
+        except Exception as e:
+            duration = time.time() - start_time
+            logger.error(f"❌ ERROR after {duration:.1f}s for {request.url}: {e}")
+            raise
 
 # Add timeout middleware
 app.add_middleware(TimeoutMiddleware)
