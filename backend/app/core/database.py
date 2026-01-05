@@ -19,8 +19,7 @@ else:
         pool_timeout=30,              # Wait max 30s for available connection
         pool_recycle=3600,            # Recycle connections after 1 hour
         connect_args={
-            "connect_timeout": 10,    # DB connection timeout 10s
-            "options": "-c statement_timeout=300000"  # SQL query timeout 5min (for large inserts)
+            "connect_timeout": 10     # DB connection timeout 10s
         }
     )
 
