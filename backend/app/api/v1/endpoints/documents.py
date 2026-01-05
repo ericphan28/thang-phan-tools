@@ -3639,20 +3639,27 @@ async def ocr_to_word(
             logger.info(f"🔍 Checking AI quota for user {current_user.id} (using Gemini for perfect Vietnamese)...")
             quota_info_checked = QuotaService.check_ai_quota(current_user, db)
             quota_incremented = True
+            
+            # CRITICAL: Commit DB changes and close session BEFORE long Gemini API call
+            # This releases DB connection pool during OCR (30s-3min)
+            db.commit()
+            logger.info("✅ DB session committed - releasing connection for OCR processing")
         else:
             logger.info("🎭 Demo mode - skipping quota check")
         
-        # Step 2: Extract text
-        logger.info("📝 Extracting text...")
+        # Step 2: Extract text (long operation - up to 3 minutes for large PDFs)
+        logger.info("📝 Extracting text with Gemini AI...")
         try:
             extracted_text = ocr_service.extract_text_from_pdf(temp_pdf_path, is_scanned)
         except Exception:
             # Roll back quota increment if AI OCR failed
             if not is_demo_user and 'quota_incremented' in locals() and quota_incremented:
                 try:
+                    # Re-open DB session to rollback
                     QuotaService.rollback_quota_increment(current_user, db)
-                except Exception:
-                    pass
+                    db.commit()
+                except Exception as rollback_err:
+                    logger.error(f"Rollback failed: {rollback_err}")
             raise
         
         if not extracted_text or len(extracted_text.strip()) < 10:

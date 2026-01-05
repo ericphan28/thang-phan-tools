@@ -13,9 +13,15 @@ if settings.DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         settings.DATABASE_URL,
-        pool_pre_ping=True,
-        pool_size=10,
-        max_overflow=20
+        pool_pre_ping=True,          # Check connection before use
+        pool_size=20,                 # Increased from 10 for large OCR workloads
+        max_overflow=40,              # Total 60 connections max
+        pool_timeout=30,              # Wait max 30s for available connection
+        pool_recycle=3600,            # Recycle connections after 1 hour
+        connect_args={
+            "connect_timeout": 10,    # DB connection timeout 10s
+            "options": "-c statement_timeout=300000"  # SQL query timeout 5min (for large inserts)
+        }
     )
 
 # Create session factory
