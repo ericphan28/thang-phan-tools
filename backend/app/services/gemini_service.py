@@ -16,8 +16,9 @@ from datetime import datetime
 from pathlib import Path
 
 from app.core.config import settings
-from app.services.ai_usage_service import log_usage, get_api_key
 from app.services.gemini_key_service import GeminiKeyService
+from app.models.gemini_keys import GeminiKeyUsageLog, UsageStatus, GeminiKeyQuota, QuotaType
+from app.core.pricing import GEMINI_MODELS
 from app.schemas.gemini_keys import UsageLogCreate, UsageStatusEnum
 
 
@@ -58,6 +59,66 @@ class GeminiService:
         
         # Configure Gemini
         genai.configure(api_key=api_key)
+    
+    def _log_gemini_usage(
+        self,
+        model: str,
+        operation: str,
+        input_tokens: int,
+        output_tokens: int,
+        processing_time: float,
+        status: str = "success",
+        error_message: str = None,
+        metadata: Dict[str, Any] = None
+    ):
+        """Log usage vào gemini_key_usage_log table"""
+        try:
+            # Calculate cost
+            model_info = GEMINI_MODELS.get(model, {})
+            pricing = model_info.get("pricing", {})
+            
+            input_cost = (input_tokens / 1_000_000) * pricing.get("input", 0)
+            output_cost = (output_tokens / 1_000_000) * pricing.get("output", 0)
+            total_cost = input_cost + output_cost
+            
+            # Create log
+            usage_log = GeminiKeyUsageLog(
+                key_id=self.current_key_id,
+                user_id=self.user_id,
+                model=model,
+                prompt_tokens=input_tokens,
+                completion_tokens=output_tokens,
+                total_tokens=input_tokens + output_tokens,
+                cost_usd=total_cost,
+                request_type=operation,
+                status=UsageStatus.SUCCESS if status == "success" else UsageStatus.ERROR,
+                error_message=error_message,
+                processing_time_ms=int(processing_time * 1000) if processing_time else None,
+                request_metadata=str(metadata) if metadata else None,
+                created_at=datetime.utcnow()
+            )
+            
+            self.db.add(usage_log)
+            
+            # Update key's usage count
+            if self.current_key_id:
+                from app.models.gemini_keys import GeminiKeyQuota, QuotaType
+                
+                # Update monthly quota
+                monthly_quota = self.db.query(GeminiKeyQuota).filter(
+                    GeminiKeyQuota.key_id == self.current_key_id,
+                    GeminiKeyQuota.quota_type == QuotaType.MONTHLY
+                ).first()
+                
+                if monthly_quota:
+                    monthly_quota.usage_count += input_tokens + output_tokens
+                    monthly_quota.updated_at = datetime.utcnow()
+            
+            self.db.commit()
+            
+        except Exception as e:
+            self.db.rollback()
+            print(f"Error logging Gemini usage: {e}")
     
     def generate_content(
         self,
@@ -102,17 +163,14 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log success
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 processing_time=processing_time,
                 status="success",
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             return response
@@ -122,18 +180,15 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log error
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=0,
                 output_tokens=0,
                 processing_time=processing_time,
                 status="error",
                 error_message=error_message,
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             # Re-raise exception
@@ -183,17 +238,14 @@ class GeminiService:
             
             # Log after stream completes
             processing_time = time.time() - start_time
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=total_input_tokens,
                 output_tokens=total_output_tokens,
                 processing_time=processing_time,
                 status="success",
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
         except Exception as e:
@@ -201,18 +253,15 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log error
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=total_input_tokens,
                 output_tokens=total_output_tokens,
                 processing_time=processing_time,
                 status="error",
                 error_message=error_message,
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             raise
@@ -372,17 +421,14 @@ class GeminiService:
             print(f"{'='*80}\n", flush=True)
             
             # Log success
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 processing_time=processing_time,
                 status="success",
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             return response
@@ -392,18 +438,15 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log error
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=0,
                 output_tokens=0,
                 processing_time=processing_time,
                 status="error",
                 error_message=error_message,
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             raise
@@ -468,17 +511,14 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log success
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
                 processing_time=processing_time,
                 status="success",
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             return response
@@ -488,18 +528,15 @@ class GeminiService:
             processing_time = time.time() - start_time
             
             # Log error
-            log_usage(
-                db=self.db,
-                provider="gemini",
+            self._log_gemini_usage(
                 model=model,
-                endpoint=operation,
+                operation=operation,
                 input_tokens=0,
                 output_tokens=0,
                 processing_time=processing_time,
                 status="error",
                 error_message=error_message,
-                user_id=self.user_id,
-                request_metadata=metadata
+                metadata=metadata
             )
             
             # Re-raise exception
