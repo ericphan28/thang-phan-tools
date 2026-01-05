@@ -482,7 +482,6 @@ export default function KeysManagementTab() {
 
       {/* Edit Key Dialog */}
       <Dialog open={showEditDialog} onOpenChange={handleCloseEdit}>
-        {console.log('🎨 Rendering Edit Dialog, showEditDialog =', showEditDialog)}
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Gemini API Key</DialogTitle>

@@ -110,10 +110,10 @@ export default function OCRToWordPage() {
       return;
     }
     
-    // Validate size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    // Validate size (max 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      toast.error('❌ File quá lớn. Giới hạn 10MB.');
+      toast.error('❌ File quá lớn. Giới hạn 50MB.');
       return;
     }
     
@@ -469,7 +469,7 @@ export default function OCRToWordPage() {
                 Bước 1: Chọn File
               </CardTitle>
               <CardDescription>
-                Kéo thả hoặc chọn file PDF (tối đa 10MB)
+                Kéo thả hoặc chọn file PDF (tối đa 50MB)
               </CardDescription>
             </CardHeader>
             <CardContent>
